@@ -2,6 +2,1742 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0a">
+<title>GYM LOG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --accent: #d4ff00;
+    --accent2: #ff4d00;
+    --blue: #00c8ff;
+    --orange: #ff6b35;
+    --green: #00e5a0;
+    --text: #efefef;
+    --muted: #555;
+    --muted2: #888;
+    --nav-h: 64px;
+    --header-h: 52px;
+    --tab-h: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html { font-size: 16px; }
+
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh; min-height: 100dvh;
+    overflow-x: hidden;
+    padding-bottom: calc(var(--nav-h) + 16px);
+  }
+
+  /* ── LOGIN ── */
+  #login-overlay {
+    position: fixed; inset: 0; background: var(--bg);
+    z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .login-box {
+    width: 100%; max-width: 360px;
+    display: flex; flex-direction: column; align-items: center; gap: 0;
+  }
+  .login-logo {
+    font-family: 'Bebas Neue', sans-serif; font-size: 3.5rem; letter-spacing: 10px;
+    color: var(--accent); margin-bottom: 8px;
+  }
+  .login-logo span { color: var(--muted); }
+  .login-sub { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 40px; }
+  .login-label { align-self: flex-start; font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+  .login-input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: 'DM Mono', monospace; font-size: 1.1rem;
+    padding: 16px 18px; outline: none; border-radius: 2px;
+    transition: border-color 0.2s; margin-bottom: 12px;
+  }
+  .login-input:focus { border-color: var(--accent); }
+  .login-btn {
+    width: 100%; background: var(--accent); color: #000; border: none;
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 4px;
+    padding: 18px; cursor: pointer; border-radius: 2px;
+    active-transition: opacity 0.1s;
+  }
+  .login-btn:active { opacity: 0.8; }
+  #login-err { font-size: 0.7rem; color: var(--accent2); margin-top: 12px; display: none; text-align: center; }
+
+  /* ── HEADER ── */
+  header {
+    height: var(--header-h); display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg); z-index: 100;
+  }
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 5px; color: var(--accent); }
+  .logo span { color: var(--muted); }
+  #header-status { font-size: 0.6rem; color: var(--muted); }
+
+  /* ── PROFILE SWITCHER ── */
+  .profile-bar {
+    display: grid; grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--border); background: var(--surface);
+  }
+  .profile-btn {
+    padding: 12px 8px; cursor: pointer; background: none; border: none;
+    font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    border-bottom: 3px solid transparent; transition: all 0.15s;
+  }
+  .profile-btn:first-child { border-right: 1px solid var(--border); }
+  .p-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .profile-btn[data-profile="adult"] .p-dot { background: var(--accent); }
+  .profile-btn[data-profile="teen"] .p-dot { background: var(--green); }
+  .profile-btn.active[data-profile="adult"] { color: var(--accent); border-bottom-color: var(--accent); background: rgba(212,255,0,0.05); }
+  .profile-btn.active[data-profile="teen"] { color: var(--green); border-bottom-color: var(--green); background: rgba(0,229,160,0.05); }
+
+  /* ── DAY TABS ── */
+  .tabs {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--border); background: var(--bg);
+    position: sticky; top: var(--header-h); z-index: 90;
+    height: var(--tab-h);
+  }
+  .tab {
+    font-family: 'Bebas Neue', sans-serif; font-size: 0.95rem; letter-spacing: 2px;
+    cursor: pointer; color: var(--muted); border-bottom: 3px solid transparent;
+    transition: all 0.15s; background: none; border-left: none; border-right: none; border-top: none;
+    border-left: 1px solid var(--border);
+  }
+  .tab:first-child { border-left: none; }
+  .tab[data-color="yellow"].active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(212,255,0,0.04); }
+  .tab[data-color="blue"].active { color: var(--blue); border-bottom-color: var(--blue); background: rgba(0,200,255,0.04); }
+  .tab[data-color="orange"].active { color: var(--orange); border-bottom-color: var(--orange); background: rgba(255,107,53,0.04); }
+
+  /* ── MAIN ── */
+  main { padding: 14px 12px; }
+  .day-panel { display: none; }
+  .day-panel.active { display: block; }
+
+  .day-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px; padding: 0 4px; }
+  .day-title { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; letter-spacing: 3px; }
+  .day-title.yellow { color: var(--accent); }
+  .day-title.blue { color: var(--blue); }
+  .day-title.orange { color: var(--orange); }
+  .day-subtitle { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ── BLOCK ── */
+  .block { margin-bottom: 16px; border: 1px solid var(--border); background: var(--surface); border-radius: 4px; overflow: hidden; }
+  .block-header { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .block-tag { font-size: 0.55rem; letter-spacing: 2px; text-transform: uppercase; padding: 2px 7px; border: 1px solid; border-radius: 2px; }
+  .block-tag.compound { border-color: var(--accent); color: var(--accent); }
+  .block-tag.accessory { border-color: var(--blue); color: var(--blue); }
+  .block-tag.cardio { border-color: var(--orange); color: var(--orange); }
+  .block-tag.teen { border-color: var(--green); color: var(--green); }
+  .block-name { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ── EXERCISE CARD ── */
+  .ex-header { display: none; } /* hidden on mobile */
+
+  .exercise-row {
+    padding: 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .exercise-row:last-child { border-bottom: none; }
+  .exercise-row:active { background: var(--surface2); }
+
+  /* Top row: name + yt button */
+  .ex-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .ex-name { font-size: 0.85rem; font-weight: 500; flex: 1; line-height: 1.3; }
+  .ex-name small { display: block; font-size: 0.62rem; color: var(--muted); font-weight: 300; margin-top: 3px; font-style: italic; }
+  .ex-yt {
+    flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(255,0,0,0.12); border: 1px solid rgba(255,0,0,0.25);
+    color: #ff4444; font-size: 0.75rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .ex-yt:active { background: rgba(255,0,0,0.25); }
+
+  /* Middle row: sets × reps / RPE badges */
+  .ex-meta { display: flex; gap: 8px; align-items: center; }
+  .ex-badge {
+    display: flex; flex-direction: column; align-items: center;
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 5px 10px; border-radius: 3px; min-width: 52px;
+  }
+  .ex-badge-label { font-size: 0.48rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+  .ex-badge-val { font-size: 0.85rem; font-weight: 500; color: var(--text); }
+
+  /* Bottom row: weight stepper + save */
+  .ex-bottom { display: flex; align-items: center; gap: 10px; }
+
+  .weight-stepper {
+    display: flex; align-items: center; flex: 1;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; overflow: hidden;
+  }
+  .step-btn {
+    width: 44px; height: 44px; background: none; border: none;
+    color: var(--muted2); font-size: 1.3rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.1s; flex-shrink: 0;
+    font-family: 'DM Mono', monospace;
+  }
+  .step-btn:active { background: var(--border); color: var(--text); }
+  .weight-input {
+    flex: 1; background: transparent; border: none;
+    color: var(--accent); font-family: 'DM Mono', monospace;
+    font-size: 1.25rem; font-weight: 500; text-align: center;
+    outline: none; padding: 0; min-width: 0; height: 44px;
+    -moz-appearance: textfield;
+  }
+  .weight-input::-webkit-inner-spin-button, .weight-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .weight-input.teen-input { color: var(--green); }
+  .weight-unit-inline { font-size: 0.6rem; color: var(--muted); padding-right: 10px; flex-shrink: 0; }
+
+  .ex-save {
+    width: 56px; height: 44px; border-radius: 3px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted); font-size: 1.1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; flex-shrink: 0;
+  }
+  .ex-save:active { background: var(--accent); color: #000; border-color: var(--accent); }
+  .ex-save.saved { background: rgba(212,255,0,0.1); color: var(--accent); border-color: var(--accent); }
+  .teen-profile .ex-save:active { background: var(--green); border-color: var(--green); color: #000; }
+  .teen-profile .ex-save.saved { background: rgba(0,229,160,0.1); color: var(--green); border-color: var(--green); }
+
+  /* ── HISTORY ── */
+  .history-wrapper { border-top: 1px solid var(--border); }
+  .history-toggle {
+    display: flex; align-items: center; gap: 8px; font-size: 0.65rem;
+    color: var(--muted); cursor: pointer; padding: 12px 14px;
+    background: none; border: none; width: 100%; text-align: left;
+    font-family: 'DM Mono', monospace; transition: color 0.15s;
+  }
+  .history-toggle:active { color: var(--text); }
+  .history-panel { display: none; padding: 14px; background: var(--bg); border-top: 1px solid var(--border); }
+  .history-panel.open { display: block; }
+
+  .history-chart { display: flex; align-items: flex-end; gap: 4px; height: 56px; margin-bottom: 14px; }
+  .h-bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; min-width: 0; }
+  .h-bar { width: 100%; min-height: 3px; border-radius: 2px 2px 0 0; opacity: 0.85; background: var(--accent); }
+  .h-bar.teen-bar { background: var(--green); }
+  .h-bar-val { font-size: 0.5rem; color: var(--muted2); white-space: nowrap; }
+  .h-bar-date { font-size: 0.46rem; color: var(--muted); white-space: nowrap; }
+
+  .history-table { width: 100%; border-collapse: collapse; font-size: 0.68rem; }
+  .history-table th { text-align: left; color: var(--muted); padding: 5px 6px; font-weight: 400; font-size: 0.58rem; text-transform: uppercase; letter-spacing: 1px; }
+  .history-table td { padding: 7px 6px; border-top: 1px solid var(--border); }
+  .history-table td.w-val { color: var(--accent); font-weight: 500; }
+  .teen-profile .history-table td.w-val { color: var(--green); }
+  .delta-pos { color: var(--accent) !important; }
+  .delta-neg { color: var(--accent2) !important; }
+  .delta-neu { color: var(--muted) !important; }
+
+  /* ── NOTES ── */
+  .note-area { margin-top: 12px; padding: 14px; border: 1px solid var(--border); background: var(--surface); border-radius: 4px; }
+  .note-label { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 8px; }
+  .note-input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 0.9rem; padding: 12px; outline: none; resize: none;
+    min-height: 72px; border-radius: 2px; transition: border-color 0.2s;
+  }
+  .note-input:focus { border-color: var(--accent); }
+  .note-save {
+    margin-top: 10px; width: 100%; background: none; border: 1px solid var(--border);
+    color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.75rem;
+    padding: 12px; cursor: pointer; border-radius: 2px; transition: all 0.15s;
+  }
+  .note-save:active { border-color: var(--accent); color: var(--accent); }
+
+  /* ── CARDIO NOTE ── */
+  .cardio-note { padding: 14px; font-size: 0.72rem; color: var(--muted); line-height: 1.8; }
+
+  /* ── STATUS BAR (bottom) ── */
+  #status-bar {
+    position: fixed; bottom: var(--nav-h); left: 0; right: 0;
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 6px 16px; display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.6rem; color: var(--muted); z-index: 98;
+  }
+  #status-msg.ok { color: var(--accent); }
+  #status-msg.err { color: var(--accent2); }
+  .status-right { display: flex; gap: 12px; }
+
+  /* ── BOTTOM NAV ── */
+  #bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-h);
+    background: var(--surface); border-top: 1px solid var(--border);
+    display: flex; z-index: 99;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; cursor: pointer; background: none; border: none;
+    font-family: 'DM Mono', monospace; font-size: 0.55rem; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px; transition: all 0.15s;
+    border-top: 2px solid transparent;
+  }
+  .nav-btn .nav-icon { font-size: 1.2rem; line-height: 1; }
+  .nav-btn.active[data-day="lunes"] { color: var(--accent); border-top-color: var(--accent); }
+  .nav-btn.active[data-day="miercoles"] { color: var(--blue); border-top-color: var(--blue); }
+  .nav-btn.active[data-day="viernes"] { color: var(--orange); border-top-color: var(--orange); }
+  .nav-btn.active[data-day="dia1"] { color: var(--accent); border-top-color: var(--accent); }
+  .nav-btn.active[data-day="dia2"] { color: var(--blue); border-top-color: var(--blue); }
+  .nav-btn.active[data-day="dia3"] { color: var(--orange); border-top-color: var(--orange); }
+  .nav-divider { width: 1px; background: var(--border); margin: 8px 0; }
+
+  /* ── YT MODAL ── */
+  #yt-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 3000; align-items: flex-end; justify-content: center; }
+  #yt-modal.open { display: flex; }
+  .yt-inner { background: var(--surface); width: 100%; border-top: 1px solid var(--border); padding: 16px; }
+  .yt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .yt-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 2px; }
+  .yt-close { background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.7rem; padding: 8px 14px; cursor: pointer; border-radius: 2px; }
+  .yt-embed { position: relative; padding-bottom: 56.25%; height: 0; border-radius: 2px; overflow: hidden; }
+  .yt-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
+
+  /* ── DESKTOP OVERRIDE ── */
+  @media (min-width: 700px) {
+    body { padding-bottom: 40px; }
+    #bottom-nav { display: none; }
+    #status-bar { bottom: 0; }
+    main { padding: 24px 28px; max-width: 860px; margin: 0 auto; }
+
+    .tabs { display: flex; height: auto; position: sticky; }
+    .tab { padding: 14px 22px; border-left: none; border-right: none; }
+    .tab:not(:first-child) { border-left: 1px solid var(--border); }
+
+    .profile-bar { display: flex; }
+    .profile-btn { padding: 13px 24px; justify-content: flex-start; }
+    .profile-btn:first-child { border-right: 1px solid var(--border); }
+
+    /* Desktop: restore table layout for exercises */
+    .ex-header {
+      display: grid;
+      grid-template-columns: 36px 1fr 64px 74px 58px 140px 52px;
+      border-bottom: 1px solid var(--border); background: var(--bg);
+    }
+    .ex-header span { padding: 7px 10px; font-size: 0.52rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); }
+    .ex-header span:not(:first-child) { border-left: 1px solid var(--border); text-align: center; }
+
+    .exercise-row {
+      display: grid;
+      grid-template-columns: 36px 1fr 64px 74px 58px 140px 52px;
+      flex-direction: unset; gap: 0; padding: 0;
+      border-bottom: 1px solid var(--border); align-items: center;
+    }
+    .exercise-row:last-child { border-bottom: none; }
+    .exercise-row:hover { background: var(--surface2); }
+
+    .ex-top { display: contents; }
+    .ex-meta { display: contents; }
+    .ex-bottom { display: contents; }
+
+    .ex-yt {
+      width: 36px; height: 100%; border-radius: 0;
+      background: none; border: none; border-right: 1px solid var(--border);
+      color: var(--muted); font-size: 0.7rem; min-height: 46px;
+    }
+    .ex-yt:active { background: rgba(255,0,0,0.1); color: #ff4444; }
+
+    .ex-name { padding: 12px 14px; font-size: 0.74rem; }
+    .ex-name small { font-size: 0.57rem; }
+
+    .ex-badge { display: none; }
+
+    .ex-sets, .ex-reps, .ex-rpe {
+      display: flex; align-items: center; justify-content: center;
+      padding: 12px 8px; font-size: 0.68rem; color: var(--muted2);
+      border-left: 1px solid var(--border); height: 100%;
+    }
+
+    .ex-bottom { display: flex; align-items: center; border-left: 1px solid var(--border); padding: 6px 10px; }
+    .weight-stepper { background: var(--bg); border: 1px solid var(--border); border-radius: 2px; }
+    .step-btn { width: 28px; height: 36px; font-size: 1rem; }
+    .weight-input { font-size: 0.9rem; height: 36px; }
+    .weight-unit-inline { font-size: 0.56rem; }
+
+    .ex-save {
+      width: 52px; height: 100%; min-height: 46px; border-radius: 0;
+      border: none; border-left: 1px solid var(--border); background: none; color: var(--muted);
+    }
+    .ex-save:hover { background: var(--accent); color: #000; }
+    .teen-profile .ex-save:hover { background: var(--green); color: #000; }
+
+    #yt-modal { align-items: center; }
+    .yt-inner { max-width: 720px; width: 95%; border: 1px solid var(--border); border-top: 1px solid var(--border); border-radius: 2px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">GYM<span>LOG</span></div>
+    <div class="login-sub">Tracker de fuerza</div>
+    <div class="login-label">Contraseña</div>
+    <input type="password" class="login-input" id="login-pwd" placeholder="••••••••••••" onkeydown="if(event.key==='Enter')unlock()">
+    <button class="login-btn" onclick="unlock()">ENTRAR</button>
+    <div id="login-err">Contraseña incorrecta</div>
+  </div>
+</div>
+
+
+
+<!-- HEADER -->
+<header>
+  <div class="logo">GYM<span>LOG</span></div>
+  <div style="font-size:0.6rem;color:var(--muted)" id="header-status"></div>
+</header>
+
+<!-- PROFILES -->
+<div class="profile-bar">
+  <button class="profile-btn active" data-profile="adult" onclick="switchProfile('adult')">
+    <span class="p-dot"></span>46 años · 83 kg
+  </button>
+  <button class="profile-btn" data-profile="teen" onclick="switchProfile('teen')">
+    <span class="p-dot"></span>Júnior · 14 años
+  </button>
+</div>
+
+<!-- ═══════════════════════════════ ADULTO ═══════════════════════════════ -->
+<div id="profile-adult">
+  <div class="tabs" id="tabs-adult">
+    <button class="tab active" data-color="yellow" onclick="switchDay('adult','lunes')">LUNES</button>
+    <button class="tab" data-color="blue" onclick="switchDay('adult','miercoles')">MIÉRCOLES</button>
+    <button class="tab" data-color="orange" onclick="switchDay('adult','viernes')">VIERNES</button>
+  </div>
+  <main>
+
+    <!-- LUNES -->
+    <div class="day-panel active" id="adult-lunes">
+      <div class="day-header"><div class="day-title yellow">LUNES</div><div class="day-subtitle">Empuje · 60 min · Fuerza</div></div>
+
+      <div class="block">
+        <div class="block-header"><span class="block-tag compound">COMPUESTO</span><span class="block-name">Bloque principal</span></div>
+        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+
+        <div class="exercise-row" data-ex="a-press-banca" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Press de banca<small>Barra · descanso 3-4 min</small></div>
+            <button class="ex-yt" onclick="openYT('Press de banca','dJNsNzaRAeE')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">4</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">5</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">8</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">4</div>
+            <div class="ex-reps" style="display:none">5</div>
+            <div class="ex-rpe" style="display:none">8</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="2.5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="a-press-militar" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Press militar<small>Barra · de pie · descanso 3 min</small></div>
+            <button class="ex-yt" onclick="openYT('Press militar barra','2yjwXTZQDDI')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">6</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7-8</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">6</div>
+            <div class="ex-rpe" style="display:none">7-8</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="2.5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-header"><span class="block-tag accessory">ACCESORIO</span><span class="block-name">Volumen de apoyo</span></div>
+        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+
+        <div class="exercise-row" data-ex="a-fondos-lastre" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Fondos con lastre<small>Cinturón · pecho adelante</small></div>
+            <button class="ex-yt" onclick="openYT('Fondos con lastre','wjUmnZH528Y')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">8</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="2.5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="a-aperturas" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Aperturas mancuerna<small>Banco plano · codo semiflexionado</small></div>
+            <button class="ex-yt" onclick="openYT('Aperturas con mancuerna','eozdVDA78K0')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">10-12</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">10-12</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="2">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="a-extension-triceps" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Extensión tríceps (polea)<small>Cuerda o barra recta</small></div>
+            <button class="ex-yt" onclick="openYT('Extensión tríceps polea','2-LAMcpzODU')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">10-12</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">10-12</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="2.5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="a-elevaciones-lat" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Elevaciones laterales<small>Mancuernas · control en bajada</small></div>
+            <button class="ex-yt" onclick="openYT('Elevaciones laterales','3VcKaXpzqRo')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">12-15</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">12-15</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="2">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="note-area">
+        <div class="note-label">Notas del día</div>
+        <textarea class="note-input" id="note-adult-lunes" placeholder="Sensaciones, ajustes, observaciones..."></textarea>
+        <button class="note-save" onclick="saveNote('adult','lunes')">Guardar nota</button>
+      </div>
+    </div>
+
+    <!-- MIÉRCOLES -->
+    <div class="day-panel" id="adult-miercoles">
+      <div class="day-header"><div class="day-title blue">MIÉRCOLES</div><div class="day-subtitle">Tirón + Pierna · 60 min · Fuerza</div></div>
+
+      <div class="block">
+        <div class="block-header"><span class="block-tag compound">COMPUESTO</span><span class="block-name">Bloque principal</span></div>
+        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+
+        <div class="exercise-row" data-ex="a-peso-muerto" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Peso muerto<small>Convencional · descanso 4 min</small></div>
+            <button class="ex-yt" onclick="openYT('Peso muerto convencional','op9kVnSso6Q')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">4</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">4</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">8</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">4</div>
+            <div class="ex-reps" style="display:none">4</div>
+            <div class="ex-rpe" style="display:none">8</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="a-dominadas" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Dominadas con lastre<small>Agarre prono · rango completo</small></div>
+            <button class="ex-yt" onclick="openYT('Dominadas con lastre','eGo4IYlbE5g')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">4</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">5</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">8</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">4</div>
+            <div class="ex-reps" style="display:none">5</div>
+            <div class="ex-rpe" style="display:none">8</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="2.5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="a-sentadilla" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Sentadilla<small>Barra alta · descanso 3-4 min</small></div>
+            <button class="ex-yt" onclick="openYT('Sentadilla con barra','ultWZbUMPL8')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">5</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">8</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">5</div>
+            <div class="ex-rpe" style="display:none">8</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-header"><span class="block-tag accessory">ACCESORIO</span><span class="block-name">Volumen de apoyo</span></div>
+        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+
+        <div class="exercise-row" data-ex="a-remo-barra" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Remo Pendlay<small>Barra · espalda paralela al suelo</small></div>
+            <button class="ex-yt" onclick="openYT('Remo Pendlay','sSIekHmkDmo')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">6</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7-8</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">6</div>
+            <div class="ex-rpe" style="display:none">7-8</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="a-curl-biceps" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Curl bíceps (barra)<small>Sin balanceo · codo fijo</small></div>
+            <button class="ex-yt" onclick="openYT('Curl bíceps con barra','kwG2ipFRgfo')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8-10</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">8-10</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="2.5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="a-prensa" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Prensa de pierna<small>Pies altos y separados</small></div>
+            <button class="ex-yt" onclick="openYT('Prensa de pierna','IZxyjW7MPJQ')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">8</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="10">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="note-area">
+        <div class="note-label">Notas del día</div>
+        <textarea class="note-input" id="note-adult-miercoles" placeholder="Sensaciones, ajustes, observaciones..."></textarea>
+        <button class="note-save" onclick="saveNote('adult','miercoles')">Guardar nota</button>
+      </div>
+    </div>
+
+    <!-- VIERNES -->
+    <div class="day-panel" id="adult-viernes">
+      <div class="day-header"><div class="day-title orange">VIERNES</div><div class="day-subtitle">Full body moderado + 45 min natación</div></div>
+
+      <div class="block">
+        <div class="block-header"><span class="block-tag compound">COMPUESTO</span><span class="block-name">Intensidad controlada — nadas después</span></div>
+        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+
+        <div class="exercise-row" data-ex="a-bulgara" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Sentadilla búlgara<small>Mancuernas · pie elevado</small></div>
+            <button class="ex-yt" onclick="openYT('Sentadilla búlgara','2C-uNgKwPLE')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">6</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">6</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="2">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="a-press-inclinado" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Press inclinado (mancuerna)<small>45° · rango completo</small></div>
+            <button class="ex-yt" onclick="openYT('Press inclinado mancuerna','8iPEnn-ltC8')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">8</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="2">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="a-remo-mancuerna" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Remo a una mano<small>Mancuerna · apoyo en banco</small></div>
+            <button class="ex-yt" onclick="openYT('Remo a una mano','pYcpY20QaE8')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">8</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="2">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-header"><span class="block-tag accessory">ACCESORIO</span><span class="block-name">Complemento</span></div>
+        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+
+        <div class="exercise-row" data-ex="a-hip-thrust" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Hip thrust (barra)<small>Hombros en banco · aprieta glúteo</small></div>
+            <button class="ex-yt" onclick="openYT('Hip thrust con barra','xDmFkJxPzeM')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">10</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">10</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="a-face-pull" data-profile="adult">
+          <div class="ex-top">
+            <div class="ex-name">Face pull (polea)<small>Cuerda · polea alta · codos arriba</small></div>
+            <button class="ex-yt" onclick="openYT('Face pull en polea','rep-qVOkqgk')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">15</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">6</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">15</div>
+            <div class="ex-rpe" style="display:none">6</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input" placeholder="—" step="2.5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-header"><span class="block-tag cardio">NATACIÓN</span><span class="block-name">45 min · post sala</span></div>
+        <div class="cardio-note">10 min calentamiento (espalda suave) → 20 min series técnicas o 50m continuos → 15 min enfriamiento. Cardiovascular + recuperación activa. No elevar la intensidad de sala por la natación posterior.</div>
+      </div>
+
+      <div class="note-area">
+        <div class="note-label">Notas del día</div>
+        <textarea class="note-input" id="note-adult-viernes" placeholder="Sensaciones, ajustes, observaciones..."></textarea>
+        <button class="note-save" onclick="saveNote('adult','viernes')">Guardar nota</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════════════════════════════ JÚNIOR ═══════════════════════════════ -->
+<div id="profile-teen" class="teen-profile" style="display:none">
+  <div class="tabs" id="tabs-teen">
+    <button class="tab active" data-color="yellow" onclick="switchDay('teen','lunes')">LUNES</button>
+    <button class="tab" data-color="blue" onclick="switchDay('teen','miercoles')">MIÉRCOLES</button>
+    <button class="tab" data-color="orange" onclick="switchDay('teen','viernes')">VIERNES</button>
+  </div>
+  <main>
+
+    <!-- LUNES: EMPUJE -->
+    <div class="day-panel active" id="teen-lunes">
+      <div class="day-header"><div class="day-title yellow">LUNES</div><div class="day-subtitle">Empuje · 60 min</div></div>
+
+      <div class="block">
+        <div class="block-header"><span class="block-tag compound">COMPUESTO</span><span class="block-name">Bloque principal</span></div>
+        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+
+        <div class="exercise-row" data-ex="t-press-banca" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Press de banca<small>Barra · descanso 3-4 min</small></div>
+            <button class="ex-yt" onclick="openYT('Press de banca','dJNsNzaRAeE')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">4</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">5</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">8</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">4</div>
+            <div class="ex-reps" style="display:none">5</div>
+            <div class="ex-rpe" style="display:none">8</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="2.5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="t-press-militar" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Press militar<small>Barra · de pie · descanso 3 min</small></div>
+            <button class="ex-yt" onclick="openYT('Press militar barra','2yjwXTZQDDI')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">6</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7-8</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">6</div>
+            <div class="ex-rpe" style="display:none">7-8</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="2.5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-header"><span class="block-tag accessory">ACCESORIO</span><span class="block-name">Volumen de apoyo</span></div>
+        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+
+        <div class="exercise-row" data-ex="t-fondos-lastre" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Fondos con lastre<small>Cinturón · pecho adelante</small></div>
+            <button class="ex-yt" onclick="openYT('Fondos con lastre','wjUmnZH528Y')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">8</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="2.5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="t-aperturas" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Aperturas mancuerna<small>Banco plano · codo semiflexionado</small></div>
+            <button class="ex-yt" onclick="openYT('Aperturas con mancuerna','eozdVDA78K0')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">10-12</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">10-12</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="2">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="t-extension-triceps" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Extensión tríceps (polea)<small>Cuerda o barra recta</small></div>
+            <button class="ex-yt" onclick="openYT('Extensión tríceps polea','2-LAMcpzODU')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">10-12</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">10-12</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="2.5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="t-elevaciones-lat" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Elevaciones laterales<small>Mancuernas · control en bajada</small></div>
+            <button class="ex-yt" onclick="openYT('Elevaciones laterales','3VcKaXpzqRo')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">12-15</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">12-15</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="2">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="note-area">
+        <div class="note-label">Notas del día</div>
+        <textarea class="note-input" id="note-teen-lunes" placeholder="Sensaciones, ajustes, observaciones..."></textarea>
+        <button class="note-save" onclick="saveNote('teen','lunes')">Guardar nota</button>
+      </div>
+    </div>
+
+    <!-- MIÉRCOLES: TIRÓN + PIERNA -->
+    <div class="day-panel" id="teen-miercoles">
+      <div class="day-header"><div class="day-title blue">MIÉRCOLES</div><div class="day-subtitle">Tirón + Pierna · 60 min</div></div>
+
+      <div class="block">
+        <div class="block-header"><span class="block-tag compound">COMPUESTO</span><span class="block-name">Bloque principal</span></div>
+        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+
+        <div class="exercise-row" data-ex="t-peso-muerto" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Peso muerto<small>Convencional · descanso 4 min</small></div>
+            <button class="ex-yt" onclick="openYT('Peso muerto convencional','op9kVnSso6Q')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">4</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">4</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">8</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">4</div>
+            <div class="ex-reps" style="display:none">4</div>
+            <div class="ex-rpe" style="display:none">8</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="t-dominadas" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Dominadas con lastre<small>Agarre prono · rango completo</small></div>
+            <button class="ex-yt" onclick="openYT('Dominadas con lastre','eGo4IYlbE5g')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">4</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">5</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">8</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">4</div>
+            <div class="ex-reps" style="display:none">5</div>
+            <div class="ex-rpe" style="display:none">8</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="2.5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="t-sentadilla" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Sentadilla<small>Barra alta · descanso 3-4 min</small></div>
+            <button class="ex-yt" onclick="openYT('Sentadilla con barra','ultWZbUMPL8')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">5</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">8</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">5</div>
+            <div class="ex-rpe" style="display:none">8</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-header"><span class="block-tag accessory">ACCESORIO</span><span class="block-name">Volumen de apoyo</span></div>
+        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+
+        <div class="exercise-row" data-ex="t-remo-barra" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Remo Pendlay<small>Barra · espalda paralela al suelo</small></div>
+            <button class="ex-yt" onclick="openYT('Remo Pendlay','sSIekHmkDmo')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">6</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7-8</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">6</div>
+            <div class="ex-rpe" style="display:none">7-8</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="t-curl-biceps" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Curl bíceps (barra)<small>Sin balanceo · codo fijo</small></div>
+            <button class="ex-yt" onclick="openYT('Curl bíceps con barra','kwG2ipFRgfo')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8-10</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">8-10</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="2.5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="t-prensa" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Prensa de pierna<small>Pies altos y separados</small></div>
+            <button class="ex-yt" onclick="openYT('Prensa de pierna','IZxyjW7MPJQ')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">8</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="10">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="note-area">
+        <div class="note-label">Notas del día</div>
+        <textarea class="note-input" id="note-teen-miercoles" placeholder="Sensaciones, ajustes, observaciones..."></textarea>
+        <button class="note-save" onclick="saveNote('teen','miercoles')">Guardar nota</button>
+      </div>
+    </div>
+
+    <!-- VIERNES: FULL BODY -->
+    <div class="day-panel" id="teen-viernes">
+      <div class="day-header"><div class="day-title orange">VIERNES</div><div class="day-subtitle">Full body moderado · 60 min</div></div>
+
+      <div class="block">
+        <div class="block-header"><span class="block-tag compound">COMPUESTO</span><span class="block-name">Bloque principal</span></div>
+        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+
+        <div class="exercise-row" data-ex="t-bulgara" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Sentadilla búlgara<small>Mancuernas · pie elevado</small></div>
+            <button class="ex-yt" onclick="openYT('Sentadilla búlgara','2C-uNgKwPLE')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">6</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">6</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="2">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="t-press-inclinado" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Press inclinado (mancuerna)<small>45° · rango completo</small></div>
+            <button class="ex-yt" onclick="openYT('Press inclinado mancuerna','8iPEnn-ltC8')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">8</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="2">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="t-remo-mancuerna" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Remo a una mano<small>Mancuerna · apoyo en banco</small></div>
+            <button class="ex-yt" onclick="openYT('Remo a una mano','pYcpY20QaE8')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">8</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="2">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-header"><span class="block-tag accessory">ACCESORIO</span><span class="block-name">Complemento</span></div>
+        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+
+        <div class="exercise-row" data-ex="t-hip-thrust" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Hip thrust (barra)<small>Hombros en banco · aprieta glúteo</small></div>
+            <button class="ex-yt" onclick="openYT('Hip thrust con barra','xDmFkJxPzeM')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">10</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">10</div>
+            <div class="ex-rpe" style="display:none">7</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+
+        <div class="exercise-row" data-ex="t-face-pull" data-profile="teen">
+          <div class="ex-top">
+            <div class="ex-name">Face pull (polea)<small>Cuerda · polea alta · codos arriba</small></div>
+            <button class="ex-yt" onclick="openYT('Face pull en polea','rep-qVOkqgk')">▶</button>
+          </div>
+          <div class="ex-meta">
+            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">15</div></div>
+            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">6</div></div>
+            <!-- desktop only -->
+            <div class="ex-sets" style="display:none">3</div>
+            <div class="ex-reps" style="display:none">15</div>
+            <div class="ex-rpe" style="display:none">6</div>
+          </div>
+          <div class="ex-bottom">
+            <div class="weight-stepper">
+              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
+              <input type="number" class="weight-input teen-input" placeholder="—" step="2.5">
+              <span class="weight-unit-inline">kg</span>
+              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
+            </div>
+            <button class="ex-save" onclick="saveWeight(this)">↑</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="note-area">
+        <div class="note-label">Notas del día</div>
+        <textarea class="note-input" id="note-teen-viernes" placeholder="Sensaciones, ajustes, observaciones..."></textarea>
+        <button class="note-save" onclick="saveNote('teen','viernes')">Guardar nota</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- STATUS BAR -->
+<div id="status-bar">
+  <span id="status-msg">Introduce la contraseña para conectar</span>
+  <div class="status-right">
+    <span id="status-db">⚫ db</span>
+    <span id="status-time"></span>
+  </div>
+</div>
+
+<!-- BOTTOM NAV (adult) -->
+<div id="bottom-nav" data-current-profile="adult">
+  <button class="nav-btn active" data-day="lunes" onclick="navTo('lunes')">
+    <span class="nav-icon">💪</span>LUNES
+  </button>
+  <div class="nav-divider"></div>
+  <button class="nav-btn" data-day="miercoles" onclick="navTo('miercoles')">
+    <span class="nav-icon">🏋️</span>MIÉRC.
+  </button>
+  <div class="nav-divider"></div>
+  <button class="nav-btn" data-day="viernes" onclick="navTo('viernes')">
+    <span class="nav-icon">🏊</span>VIERNES
+  </button>
+</div>
+
+<script>
+let sb = null;
+
+// ─── ENCRYPTED CREDENTIALS (AES-256-GCM) ───
+const ENCRYPTED = {
+  salt: '7a45cfdad64a8c65f9f07b5b3ad810ab',
+  iv:   '84ee2a6e3833fad4bb032ed9',
+  tag:  '85951f48131de73bd6086aa87d9167f5',
+  data: '96c027692f59601589aec2a263293011bbc0d4ab0c4b706116dcdb9cdf73a5d078fb15f07a2c681266d2a600d4596beb4187e5cbd4f718fc0ba98ad12d84a9cd8d0310592a78f7da771c1836697747b06079b394e0d4f8ca73cc06b648111370eec2dcdf2ecf54457a'
+};
+
+function hex2buf(hex) {
+  return new Uint8Array(hex.match(/.{2}/g).map(b => parseInt(b, 16)));
+}
+
+async function deriveKey(password, salt) {
+  const enc = new TextEncoder();
+  const keyMat = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMat,
+    { name: 'AES-GCM', length: 256 },
+    false, ['decrypt']
+  );
+}
+
+async function decryptCredentials(password) {
+  try {
+    const salt = hex2buf(ENCRYPTED.salt);
+    const iv   = hex2buf(ENCRYPTED.iv);
+    const tag  = hex2buf(ENCRYPTED.tag);
+    const data = hex2buf(ENCRYPTED.data);
+
+    // AES-GCM ciphertext = data + tag
+    const ciphertext = new Uint8Array(data.length + tag.length);
+    ciphertext.set(data); ciphertext.set(tag, data.length);
+
+    const key = await deriveKey(password, salt);
+    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+    return JSON.parse(new TextDecoder().decode(decrypted));
+  } catch {
+    return null;
+  }
+}
+
+// ─── UNLOCK ───
+async function unlock() {
+  const pwd = document.getElementById('login-pwd').value;
+  const err = document.getElementById('login-err');
+  err.style.display = 'none';
+
+  const creds = await decryptCredentials(pwd);
+  if (!creds) {
+    err.style.display = 'block';
+    document.getElementById('login-pwd').value = '';
+    document.getElementById('login-pwd').focus();
+    return;
+  }
+
+  document.getElementById('login-overlay').style.display = 'none';
+  initSB(creds.url, creds.key);
+}
+
+// ─── SUPABASE ───
+function initSB(url, key) {
+  try {
+    sb = supabase.createClient(url, key);
+    document.getElementById('status-db').textContent = '🟢 db';
+    document.getElementById('header-status').textContent = '🔒 conectado';
+    setStatus('Conectado a Supabase', 'ok');
+    loadAllWeights();
+  } catch(e) { setStatus('Error: ' + e.message, 'err'); }
+}
+
+// ─── STATUS ───
+function setStatus(msg, type = '') {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg; el.className = type;
+  if (type === 'ok') setTimeout(() => { el.textContent = 'Listo'; el.className = ''; }, 3000);
+}
+setInterval(() => {
+  const d = new Date();
+  document.getElementById('status-time').textContent =
+    d.toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' }) +
+    ' · ' + d.toTimeString().slice(0,5);
+}, 1000);
+
+// ─── WEIGHT STEPPER ───
+function stepWeight(btn, dir) {
+  const row = btn.closest('.exercise-row');
+  const input = row.querySelector('.weight-input');
+  const step = parseFloat(input.step) || 2.5;
+  const current = parseFloat(input.value) || 0;
+  const next = Math.max(0, +(current + dir * step).toFixed(2));
+  input.value = next;
+  input.style.opacity = '1';
+}
+
+// ─── BOTTOM NAV ───
+function navTo(day) {
+  const profile = document.getElementById('bottom-nav').dataset.currentProfile;
+  switchDay(profile, day);
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.nav-btn[data-day="${day}"]`).classList.add('active');
+  // scroll to top of content
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─── PROFILES ───
+function switchProfile(p) {
+  document.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.profile-btn[data-profile="${p}"]`).classList.add('active');
+  document.getElementById('profile-adult').style.display = p === 'adult' ? 'block' : 'none';
+  document.getElementById('profile-teen').style.display = p === 'teen' ? 'block' : 'none';
+
+  // Update bottom nav
+  const nav = document.getElementById('bottom-nav');
+  nav.dataset.currentProfile = p;
+  if (p === 'adult') {
+    nav.innerHTML = '<button class="nav-btn active" data-day="lunes" onclick="navTo(\'lunes\')"><span class="nav-icon">💪</span>LUNES</button><div class="nav-divider"></div><button class="nav-btn" data-day="miercoles" onclick="navTo(\'miercoles\')"><span class="nav-icon">🏋️</span>MIÉRC.</button><div class="nav-divider"></div><button class="nav-btn" data-day="viernes" onclick="navTo(\'viernes\')"><span class="nav-icon">🏊</span>VIERNES</button>';
+    switchDay('adult', 'lunes');
+  } else {
+    nav.innerHTML = '<button class="nav-btn active" data-day="lunes" onclick="navTo(\'lunes\')"><span class="nav-icon">💪</span>LUNES</button><div class="nav-divider"></div><button class="nav-btn" data-day="miercoles" onclick="navTo(\'miercoles\')"><span class="nav-icon">🏋️</span>MIÉRC.</button><div class="nav-divider"></div><button class="nav-btn" data-day="viernes" onclick="navTo(\'viernes\')"><span class="nav-icon">🏋️</span>VIERNES</button>';
+    switchDay('teen', 'lunes');
+  }
+}
+
+// ─── TABS ───
+function switchDay(profile, day) {
+  const tabsEl = document.getElementById('tabs-' + profile);
+  tabsEl.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.getAttribute('onclick').includes("'" + day + "'"));
+  });
+  document.querySelectorAll('#profile-' + profile + ' .day-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(profile + '-' + day).classList.add('active');
+  // sync bottom nav
+  document.querySelectorAll('.nav-btn[data-day]').forEach(b => {
+    b.classList.toggle('active', b.dataset.day === day);
+  });
+}
+
+function openYT(title, videoId) {
+  window.open('https://www.youtube.com/watch?v=' + videoId, '_blank');
+}
+
+// ─── SAVE WEIGHT ───
+async function saveWeight(btn) {
+  const row = btn.closest('.exercise-row');
+  const exId = row.dataset.ex;
+  const profile = row.dataset.profile;
+  const input = row.querySelector('.weight-input');
+  const weight = parseFloat(input.value);
+
+  if (isNaN(weight)) { setStatus('Introduce un peso válido', 'err'); return; }
+  if (!sb) { setStatus('Desbloquea la app primero', 'err'); return; }
+
+  const { error } = await sb.from('gym_weights').insert({
+    exercise_id: exId, profile, weight_kg: weight,
+    logged_at: new Date().toISOString()
+  });
+
+  if (error) { setStatus('Error: ' + error.message, 'err'); return; }
+
+  btn.textContent = '✓'; btn.classList.add('saved');
+  setTimeout(() => { btn.textContent = '↑'; btn.classList.remove('saved'); }, 2000);
+  setStatus('Guardado · ' + weight + ' kg', 'ok');
+  renderHistory(exId, row, profile);
+}
+
+// ─── LOAD ALL WEIGHTS ───
+async function loadAllWeights() {
+  if (!sb) return;
+  const { data, error } = await sb.from('gym_weights')
+    .select('exercise_id, profile, weight_kg, logged_at')
+    .order('logged_at', { ascending: false });
+  if (error) return;
+
+  const seen = new Set();
+  data.forEach(r => {
+    const k = r.profile + '|' + r.exercise_id;
+    if (seen.has(k)) return;
+    seen.add(k);
+    const row = document.querySelector(`[data-ex="${r.exercise_id}"][data-profile="${r.profile}"]`);
+    if (!row) return;
+    const inp = row.querySelector('.weight-input');
+    inp.value = r.weight_kg;
+    inp.style.opacity = '0.65';
+    inp.title = 'Última: ' + new Date(r.logged_at).toLocaleDateString('es-ES');
+  });
+}
+
+// ─── RENDER HISTORY ───
+async function renderHistory(exId, row, profile) {
+  if (!sb) return;
+
+  const old = document.getElementById('hist-' + exId);
+  if (old) old.remove();
+
+  const { data } = await sb.from('gym_weights')
+    .select('weight_kg, logged_at')
+    .eq('exercise_id', exId)
+    .eq('profile', profile)
+    .order('logged_at', { ascending: false })
+    .limit(12);
+
+  if (!data || data.length === 0) return;
+
+  const isTeen = profile === 'teen';
+  const barColor = isTeen ? 'var(--green)' : 'var(--accent)';
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'history-wrapper';
+  wrapper.id = 'hist-' + exId;
+
+  const toggle = document.createElement('button');
+  toggle.className = 'history-toggle';
+  toggle.innerHTML = `▾ Historial &nbsp;<strong style="color:${barColor}">${data.length} registros</strong>`;
+  toggle.onclick = () => hPanel.classList.toggle('open');
+
+  const hPanel = document.createElement('div');
+  hPanel.className = 'history-panel open';
+
+  const chronoData = [...data].reverse();
+  const vals = chronoData.map(d => d.weight_kg);
+  const maxVal = Math.max(...vals);
+
+  const chartDiv = document.createElement('div');
+  chartDiv.className = 'history-chart';
+  chronoData.forEach((r, i) => {
+    const pct = maxVal > 0 ? vals[i] / maxVal : 0;
+    const barH = Math.max(3, Math.round(pct * 44));
+    const d = new Date(r.logged_at);
+    const dateStr = d.getDate() + '/' + (d.getMonth() + 1);
+    const wrap = document.createElement('div');
+    wrap.className = 'h-bar-wrap';
+    wrap.innerHTML = `
+      <div class="h-bar${isTeen ? ' teen-bar' : ''}" style="height:${barH}px" title="${vals[i]} kg · ${dateStr}"></div>
+      <div class="h-bar-val">${vals[i]}</div>
+      <div class="h-bar-date">${dateStr}</div>`;
+    chartDiv.appendChild(wrap);
+  });
+  hPanel.appendChild(chartDiv);
+
+  const table = document.createElement('table');
+  table.className = 'history-table';
+  table.innerHTML = '<tr><th>Fecha</th><th>Hora</th><th>Peso</th><th>Δ respecto anterior</th></tr>';
+
+  data.forEach((r, i) => {
+    const d = new Date(r.logged_at);
+    const prev = data[i + 1];
+    let delta = '—', deltaClass = 'delta-neu';
+    if (prev) {
+      const diff = +(r.weight_kg - prev.weight_kg).toFixed(2);
+      delta = (diff >= 0 ? '+' : '') + diff + ' kg';
+      deltaClass = diff > 0 ? 'delta-pos' : diff < 0 ? 'delta-neg' : 'delta-neu';
+    }
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${d.toLocaleDateString('es-ES')}</td><td>${d.toTimeString().slice(0,5)}</td><td class="w-val">${r.weight_kg} kg</td><td class="${deltaClass}">${delta}</td>`;
+    table.appendChild(tr);
+  });
+  hPanel.appendChild(table);
+
+  wrapper.appendChild(toggle);
+  wrapper.appendChild(hPanel);
+  row.insertAdjacentElement('afterend', wrapper);
+}
+
+// ─── NOTES ───
+async function saveNote(profile, day) {
+  const text = document.getElementById('note-' + profile + '-' + day).value.trim();
+  if (!text) return;
+  if (!sb) { setStatus('Desbloquea la app primero', 'err'); return; }
+  const { error } = await sb.from('gym_notes').insert({
+    profile, day, note: text, logged_at: new Date().toISOString()
+  });
+  if (error) setStatus('Error nota: ' + error.message, 'err');
+  else { setStatus('Nota guardada', 'ok'); document.getElementById('note-' + profile + '-' + day).value = ''; }
+}
+
+// ─── INPUT INTERACTIONS ───
+document.querySelectorAll('.weight-input').forEach(inp => {
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      inp.closest('.exercise-row').querySelector('.ex-save').click();
+      inp.blur();
+    }
+  });
+  inp.addEventListener('focus', function() { this.style.opacity = '1'; this.select(); });
+});
+
+// Auto-focus password field
+document.getElementById('login-pwd').focus();
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GYM LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
