@@ -29,8 +29,8 @@
     min-height: 100vh; overflow-x: hidden; padding-bottom: 60px;
   }
 
-  /* CONFIG */
-  #config-overlay {
+  /* LOGIN */
+  #login-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.96);
     z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px;
   }
@@ -193,30 +193,17 @@
 </head>
 <body>
 
-<!-- CONFIG -->
-<div id="config-overlay">
+<!-- LOGIN OVERLAY -->
+<div id="login-overlay">
   <div class="config-box">
-    <h2>CONFIGURAR SUPABASE</h2>
-    <p>Conecta tu base de datos para guardar el historial de pesos de ambos perfiles. Gratuito en supabase.com. Ejecuta el SQL de abajo antes de conectar.</p>
+    <h2>ACCESO</h2>
+    <p>Introduce la contraseña para desbloquear la aplicación y conectar con la base de datos.</p>
     <div class="config-field">
-      <label>Supabase URL</label>
-      <input type="text" id="sb-url" placeholder="https://xxxxxxxxxxxx.supabase.co">
+      <label>Contraseña</label>
+      <input type="password" id="login-pwd" placeholder="••••••••••••" onkeydown="if(event.key==='Enter')unlock()">
     </div>
-    <div class="config-field">
-      <label>Anon Key (pública)</label>
-      <input type="text" id="sb-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
-    </div>
-    <button class="config-save" onclick="saveConfig()">CONECTAR Y GUARDAR</button>
-    <div class="config-note">
-      Las claves se guardan solo en tu navegador (localStorage). La anon key es segura para frontend.<br><br>
-      <strong style="color:var(--accent)">SQL para Supabase:</strong><br>
-      create table gym_weights (id uuid default gen_random_uuid() primary key, exercise_id text, profile text, weight_kg numeric, logged_at timestamptz default now());<br>
-      create table gym_notes (id uuid default gen_random_uuid() primary key, profile text, day text, note text, logged_at timestamptz default now());<br>
-      alter table gym_weights enable row level security;<br>
-      alter table gym_notes enable row level security;<br>
-      create policy "all" on gym_weights for all using (true) with check (true);<br>
-      create policy "all" on gym_notes for all using (true) with check (true);
-    </div>
+    <button class="config-save" onclick="unlock()">ENTRAR</button>
+    <div id="login-err" style="margin-top:12px;font-size:0.65rem;color:var(--accent2);display:none">Contraseña incorrecta</div>
   </div>
 </div>
 
@@ -234,7 +221,7 @@
 <!-- HEADER -->
 <header>
   <div class="logo">GYM<span>LOG</span></div>
-  <button class="settings-btn" onclick="showConfig()">⚙ supabase</button>
+  <div style="font-size:0.6rem;color:var(--muted)" id="header-status"></div>
 </header>
 
 <!-- PROFILES -->
@@ -688,33 +675,72 @@
 <script>
 let sb = null;
 
-// ─── CONFIG ───
-function loadConfig() {
-  const url = localStorage.getItem('sb_url');
-  const key = localStorage.getItem('sb_key');
-  if (url && key) {
-    document.getElementById('config-overlay').style.display = 'none';
-    initSB(url, key);
+// ─── ENCRYPTED CREDENTIALS (AES-256-GCM) ───
+const ENCRYPTED = {
+  salt: '27f1e1bbdbf90c5087d1e682855b5f92',
+  iv:   'f7018429b22fd14ef154fb68',
+  tag:  'b056ad94be0e0778a99d63c816a4f7b6',
+  data: '1c7ace1fe8deab2a6be98eecaeaa5958536169978b101c865f7db4af5bd4d48b003f8b76293ce259af5ce4710dcbe1bf3876ad44f9d2d2eaf5c1b0258d07d0f82828e9b56e865fc07ee3a0a2017e4c65f0039186dd37ad8dbd9934a3ac984d5d3f0675ab36b5af026a'
+};
+
+function hex2buf(hex) {
+  return new Uint8Array(hex.match(/.{2}/g).map(b => parseInt(b, 16)));
+}
+
+async function deriveKey(password, salt) {
+  const enc = new TextEncoder();
+  const keyMat = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMat,
+    { name: 'AES-GCM', length: 256 },
+    false, ['decrypt']
+  );
+}
+
+async function decryptCredentials(password) {
+  try {
+    const salt = hex2buf(ENCRYPTED.salt);
+    const iv   = hex2buf(ENCRYPTED.iv);
+    const tag  = hex2buf(ENCRYPTED.tag);
+    const data = hex2buf(ENCRYPTED.data);
+
+    // AES-GCM ciphertext = data + tag
+    const ciphertext = new Uint8Array(data.length + tag.length);
+    ciphertext.set(data); ciphertext.set(tag, data.length);
+
+    const key = await deriveKey(password, salt);
+    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+    return JSON.parse(new TextDecoder().decode(decrypted));
+  } catch {
+    return null;
   }
 }
-function showConfig() {
-  document.getElementById('sb-url').value = localStorage.getItem('sb_url') || '';
-  document.getElementById('sb-key').value = localStorage.getItem('sb_key') || '';
-  document.getElementById('config-overlay').style.display = 'flex';
+
+// ─── UNLOCK ───
+async function unlock() {
+  const pwd = document.getElementById('login-pwd').value;
+  const err = document.getElementById('login-err');
+  err.style.display = 'none';
+
+  const creds = await decryptCredentials(pwd);
+  if (!creds) {
+    err.style.display = 'block';
+    document.getElementById('login-pwd').value = '';
+    document.getElementById('login-pwd').focus();
+    return;
+  }
+
+  document.getElementById('login-overlay').style.display = 'none';
+  initSB(creds.url, creds.key);
 }
-function saveConfig() {
-  const url = document.getElementById('sb-url').value.trim();
-  const key = document.getElementById('sb-key').value.trim();
-  if (!url || !key) { setStatus('Faltan datos', 'err'); return; }
-  localStorage.setItem('sb_url', url);
-  localStorage.setItem('sb_key', key);
-  document.getElementById('config-overlay').style.display = 'none';
-  initSB(url, key);
-}
+
+// ─── SUPABASE ───
 function initSB(url, key) {
   try {
     sb = supabase.createClient(url, key);
     document.getElementById('status-db').textContent = '🟢 db';
+    document.getElementById('header-status').textContent = '🔒 conectado';
     setStatus('Conectado a Supabase', 'ok');
     loadAllWeights();
   } catch(e) { setStatus('Error: ' + e.message, 'err'); }
@@ -777,7 +803,7 @@ async function saveWeight(btn) {
   const weight = parseFloat(input.value);
 
   if (isNaN(weight)) { setStatus('Introduce un peso válido', 'err'); return; }
-  if (!sb) { setStatus('Configura Supabase primero', 'err'); return; }
+  if (!sb) { setStatus('Desbloquea la app primero', 'err'); return; }
 
   const { error } = await sb.from('gym_weights').insert({
     exercise_id: exId, profile, weight_kg: weight,
@@ -792,7 +818,7 @@ async function saveWeight(btn) {
   renderHistory(exId, row, profile);
 }
 
-// ─── LOAD ALL WEIGHTS (last per exercise) ───
+// ─── LOAD ALL WEIGHTS ───
 async function loadAllWeights() {
   if (!sb) return;
   const { data, error } = await sb.from('gym_weights')
@@ -818,7 +844,6 @@ async function loadAllWeights() {
 async function renderHistory(exId, row, profile) {
   if (!sb) return;
 
-  // Remove old history panel
   const old = document.getElementById('hist-' + exId);
   if (old) old.remove();
 
@@ -838,7 +863,6 @@ async function renderHistory(exId, row, profile) {
   wrapper.className = 'history-wrapper';
   wrapper.id = 'hist-' + exId;
 
-  // Toggle button
   const toggle = document.createElement('button');
   toggle.className = 'history-toggle';
   toggle.innerHTML = `▾ Historial &nbsp;<strong style="color:${barColor}">${data.length} registros</strong>`;
@@ -847,7 +871,6 @@ async function renderHistory(exId, row, profile) {
   const hPanel = document.createElement('div');
   hPanel.className = 'history-panel open';
 
-  // Bar chart (chronological order)
   const chronoData = [...data].reverse();
   const vals = chronoData.map(d => d.weight_kg);
   const maxVal = Math.max(...vals);
@@ -869,7 +892,6 @@ async function renderHistory(exId, row, profile) {
   });
   hPanel.appendChild(chartDiv);
 
-  // Table with Δ
   const table = document.createElement('table');
   table.className = 'history-table';
   table.innerHTML = '<tr><th>Fecha</th><th>Hora</th><th>Peso</th><th>Δ respecto anterior</th></tr>';
@@ -898,7 +920,7 @@ async function renderHistory(exId, row, profile) {
 async function saveNote(profile, day) {
   const text = document.getElementById('note-' + profile + '-' + day).value.trim();
   if (!text) return;
-  if (!sb) { setStatus('Configura Supabase primero', 'err'); return; }
+  if (!sb) { setStatus('Desbloquea la app primero', 'err'); return; }
   const { error } = await sb.from('gym_notes').insert({
     profile, day, note: text, logged_at: new Date().toISOString()
   });
@@ -914,7 +936,8 @@ document.querySelectorAll('.weight-input').forEach(inp => {
   inp.addEventListener('focus', function() { this.style.opacity = '1'; });
 });
 
-loadConfig();
+// Auto-focus password field
+document.getElementById('login-pwd').focus();
 </script>
 </body>
 </html>
