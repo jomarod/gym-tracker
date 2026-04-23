@@ -2,1735 +2,1246 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0a0a0a">
+<meta name="theme-color" content="#0d0d0d">
 <title>GYM LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root {
-    --bg: #0a0a0a;
-    --surface: #141414;
-    --surface2: #1e1e1e;
-    --border: #2a2a2a;
-    --accent: #d4ff00;
-    --accent2: #ff4d00;
-    --blue: #00c8ff;
-    --orange: #ff6b35;
-    --green: #00e5a0;
-    --text: #efefef;
-    --muted: #555;
-    --muted2: #888;
-    --nav-h: 64px;
-    --header-h: 52px;
-    --tab-h: 48px;
-  }
+:root {
+  --bg: #0d0d0d; --surface: #161616; --surface2: #202020;
+  --border: #2a2a2a; --border2: #383838;
+  --accent: #c8f400; --accent2: #ff4500;
+  --blue: #00d4ff; --orange: #ff7040; --green: #00f0a8;
+  --text: #f0f0f0; --text2: #bbb; --muted: #666; --muted2: #999;
+  --hdr: 50px; --tab: 44px; --nav: 58px; --row: 54px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; overflow-x: hidden; padding-bottom: calc(var(--nav) + 24px); }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+/* ── CFG MODAL ── */
+#cfg-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; padding:20px; }
+#cfg-overlay.open { display:flex; }
+.cfg-box { background:var(--surface); border:1px solid var(--border2); padding:28px; width:100%; max-width:400px; border-radius:6px; }
+.cfg-box h2 { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; letter-spacing:3px; color:var(--accent); margin-bottom:6px; }
+.cfg-box p { font-size:0.65rem; color:var(--muted2); margin-bottom:22px; line-height:1.6; }
+.cfg-field { margin-bottom:14px; }
+.cfg-field label { display:block; font-size:0.58rem; color:var(--muted2); text-transform:uppercase; letter-spacing:2px; margin-bottom:6px; }
+.cfg-field input { width:100%; background:var(--bg); border:1px solid var(--border2); color:var(--text); font-family:'DM Mono',monospace; font-size:1rem; padding:12px 14px; outline:none; border-radius:3px; transition:border-color .2s; }
+.cfg-field input:focus { border-color:var(--accent); }
+.cfg-btn { width:100%; background:var(--accent); color:#000; border:none; font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:3px; padding:14px; cursor:pointer; border-radius:3px; margin-top:4px; }
+.cfg-btn:hover { opacity:.88; }
+.cfg-cancel { width:100%; background:none; border:1px solid var(--border2); color:var(--muted2); font-family:'DM Mono',monospace; font-size:0.7rem; padding:10px; cursor:pointer; border-radius:3px; margin-top:8px; }
+.cfg-cancel:hover { border-color:var(--text2); color:var(--text2); }
+#cfg-err { font-size:0.68rem; color:var(--accent2); margin-top:10px; display:none; }
 
-  html { font-size: 16px; }
+/* ── INFO MODAL ── */
+#info-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:2000; align-items:center; justify-content:center; padding:16px; }
+#info-overlay.open { display:flex; }
+.info-box { background:var(--surface); border:1px solid var(--border2); border-radius:6px; max-width:500px; width:100%; overflow:hidden; max-height:90vh; overflow-y:auto; }
+.info-box-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--surface); z-index:1; }
+.info-box-title { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:2px; color:var(--text); }
+.info-box-close { background:none; border:1px solid var(--border2); color:var(--muted2); font-size:0.7rem; padding:5px 10px; cursor:pointer; border-radius:2px; font-family:'DM Mono',monospace; }
+.info-img-wrap { width:100%; background:#111; display:flex; align-items:center; justify-content:center; min-height:200px; }
+.info-img-wrap img { width:100%; max-height:260px; object-fit:contain; display:block; }
+.info-img-wrap .info-svg { width:100%; padding:16px; }
+.info-section { padding:14px 16px; border-top:1px solid var(--border); }
+.info-section-title { font-size:0.55rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted2); margin-bottom:8px; }
+.info-muscles { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:0; }
+.info-muscle { font-size:0.62rem; padding:3px 8px; border-radius:2px; border:1px solid; }
+.info-muscle.primary { border-color:var(--accent); color:var(--accent); background:rgba(200,244,0,0.08); }
+.info-muscle.secondary { border-color:var(--muted); color:var(--muted2); }
+.info-steps { list-style:none; }
+.info-steps li { font-size:0.68rem; color:var(--text2); padding:5px 0; border-bottom:1px solid var(--border); line-height:1.5; display:flex; gap:10px; }
+.info-steps li:last-child { border-bottom:none; }
+.info-steps li::before { content:attr(data-n); color:var(--accent); font-weight:500; flex-shrink:0; min-width:16px; }
 
-  body {
-    background: var(--bg); color: var(--text);
-    font-family: 'DM Mono', monospace;
-    min-height: 100vh; min-height: 100dvh;
-    overflow-x: hidden;
-    padding-bottom: calc(var(--nav-h) + 16px);
-  }
+/* ── HEADER ── */
+header { height:var(--hdr); display:flex; align-items:center; justify-content:space-between; padding:0 14px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--bg); z-index:100; }
+.logo { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:5px; color:var(--accent); }
+.logo span { color:var(--muted); }
+.hdr-right { display:flex; align-items:center; gap:8px; }
+#db-dot { font-size:0.55rem; color:var(--muted); }
+.cfg-open-btn { background:none; border:1px solid var(--border2); color:var(--muted2); font-family:'DM Mono',monospace; font-size:0.58rem; padding:5px 10px; cursor:pointer; border-radius:2px; transition:all .15s; }
+.cfg-open-btn:hover { border-color:var(--accent); color:var(--accent); }
 
-  /* ── LOGIN ── */
-  #login-overlay {
-    position: fixed; inset: 0; background: var(--bg);
-    z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 24px;
-  }
-  .login-box {
-    width: 100%; max-width: 360px;
-    display: flex; flex-direction: column; align-items: center; gap: 0;
-  }
-  .login-logo {
-    font-family: 'Bebas Neue', sans-serif; font-size: 3.5rem; letter-spacing: 10px;
-    color: var(--accent); margin-bottom: 8px;
-  }
-  .login-logo span { color: var(--muted); }
-  .login-sub { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 40px; }
-  .login-label { align-self: flex-start; font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
-  .login-input {
-    width: 100%; background: var(--surface); border: 1px solid var(--border);
-    color: var(--text); font-family: 'DM Mono', monospace; font-size: 1.1rem;
-    padding: 16px 18px; outline: none; border-radius: 2px;
-    transition: border-color 0.2s; margin-bottom: 12px;
-  }
-  .login-input:focus { border-color: var(--accent); }
-  .login-btn {
-    width: 100%; background: var(--accent); color: #000; border: none;
-    font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 4px;
-    padding: 18px; cursor: pointer; border-radius: 2px;
-    active-transition: opacity 0.1s;
-  }
-  .login-btn:active { opacity: 0.8; }
-  #login-err { font-size: 0.7rem; color: var(--accent2); margin-top: 12px; display: none; text-align: center; }
+/* ── PROFILE BAR ── */
+.profile-bar { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid var(--border); background:var(--surface); }
+.profile-btn { padding:10px; cursor:pointer; background:none; border:none; font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--muted2); display:flex; align-items:center; justify-content:center; gap:7px; border-bottom:3px solid transparent; transition:all .15s; }
+.profile-btn:first-child { border-right:1px solid var(--border); }
+.p-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.profile-btn[data-profile="adult"] .p-dot { background:var(--accent); }
+.profile-btn[data-profile="teen"] .p-dot { background:var(--green); }
+.profile-btn.active[data-profile="adult"] { color:var(--accent); border-bottom-color:var(--accent); }
+.profile-btn.active[data-profile="teen"] { color:var(--green); border-bottom-color:var(--green); }
 
-  /* ── HEADER ── */
-  header {
-    height: var(--header-h); display: flex; align-items: center; justify-content: space-between;
-    padding: 0 16px; border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; background: var(--bg); z-index: 100;
-  }
-  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 5px; color: var(--accent); }
-  .logo span { color: var(--muted); }
-  #header-status { font-size: 0.6rem; color: var(--muted); }
+/* ── TABS ── */
+.tabs { display:grid; grid-template-columns:1fr 1fr 1fr; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:var(--hdr); z-index:90; height:var(--tab); }
+.tab { font-family:'Bebas Neue',sans-serif; font-size:0.92rem; letter-spacing:2px; cursor:pointer; color:var(--muted2); border-bottom:3px solid transparent; background:none; border-left:none; border-right:none; border-top:none; border-left:1px solid var(--border); transition:all .15s; }
+.tab:first-child { border-left:none; }
+.tab[data-color="yellow"].active { color:var(--accent); border-bottom-color:var(--accent); background:rgba(200,244,0,0.04); }
+.tab[data-color="blue"].active { color:var(--blue); border-bottom-color:var(--blue); background:rgba(0,212,255,0.04); }
+.tab[data-color="orange"].active { color:var(--orange); border-bottom-color:var(--orange); background:rgba(255,112,64,0.04); }
 
-  /* ── PROFILE SWITCHER ── */
-  .profile-bar {
-    display: grid; grid-template-columns: 1fr 1fr;
-    border-bottom: 1px solid var(--border); background: var(--surface);
-  }
-  .profile-btn {
-    padding: 12px 8px; cursor: pointer; background: none; border: none;
-    font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted);
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    border-bottom: 3px solid transparent; transition: all 0.15s;
-  }
-  .profile-btn:first-child { border-right: 1px solid var(--border); }
-  .p-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-  .profile-btn[data-profile="adult"] .p-dot { background: var(--accent); }
-  .profile-btn[data-profile="teen"] .p-dot { background: var(--green); }
-  .profile-btn.active[data-profile="adult"] { color: var(--accent); border-bottom-color: var(--accent); background: rgba(212,255,0,0.05); }
-  .profile-btn.active[data-profile="teen"] { color: var(--green); border-bottom-color: var(--green); background: rgba(0,229,160,0.05); }
+/* ── MAIN ── */
+main { padding:12px; max-width:960px; margin:0 auto; }
+.day-panel { display:none; }
+.day-panel.active { display:block; }
+.day-header { display:flex; align-items:baseline; gap:10px; margin-bottom:12px; }
+.day-title { font-family:'Bebas Neue',sans-serif; font-size:1.9rem; letter-spacing:3px; }
+.day-title.yellow { color:var(--accent); }
+.day-title.blue { color:var(--blue); }
+.day-title.orange { color:var(--orange); }
+.day-subtitle { font-size:0.6rem; color:var(--muted2); text-transform:uppercase; letter-spacing:1px; }
 
-  /* ── DAY TABS ── */
-  .tabs {
-    display: grid; grid-template-columns: 1fr 1fr 1fr;
-    border-bottom: 1px solid var(--border); background: var(--bg);
-    position: sticky; top: var(--header-h); z-index: 90;
-    height: var(--tab-h);
-  }
-  .tab {
-    font-family: 'Bebas Neue', sans-serif; font-size: 0.95rem; letter-spacing: 2px;
-    cursor: pointer; color: var(--muted); border-bottom: 3px solid transparent;
-    transition: all 0.15s; background: none; border-left: none; border-right: none; border-top: none;
-    border-left: 1px solid var(--border);
-  }
-  .tab:first-child { border-left: none; }
-  .tab[data-color="yellow"].active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(212,255,0,0.04); }
-  .tab[data-color="blue"].active { color: var(--blue); border-bottom-color: var(--blue); background: rgba(0,200,255,0.04); }
-  .tab[data-color="orange"].active { color: var(--orange); border-bottom-color: var(--orange); background: rgba(255,107,53,0.04); }
+/* ── BLOCK ── */
+.block { margin-bottom:12px; border:1px solid var(--border); background:var(--surface); border-radius:4px; overflow:hidden; }
+.block-header { padding:8px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
+.block-tag { font-size:0.53rem; letter-spacing:2px; text-transform:uppercase; padding:2px 6px; border:1px solid; border-radius:2px; }
+.block-tag.compound { border-color:var(--accent); color:var(--accent); }
+.block-tag.accessory { border-color:var(--blue); color:var(--blue); }
+.block-tag.cardio { border-color:var(--orange); color:var(--orange); }
+.block-name { font-size:0.62rem; color:var(--muted2); text-transform:uppercase; letter-spacing:1px; }
 
-  /* ── MAIN ── */
-  main { padding: 14px 12px; }
-  .day-panel { display: none; }
-  .day-panel.active { display: block; }
+/* ── EXERCISE ROW ── */
+.ex-header { display:none; }
+.exercise-row {
+  display:grid;
+  grid-template-columns: 38px 38px 1fr 46px 60px 46px 140px 46px;
+  align-items:center; min-height:var(--row);
+  border-bottom:1px solid var(--border); transition:background .1s;
+}
+.exercise-row:last-child { border-bottom:none; }
+.exercise-row:hover { background:var(--surface2); }
 
-  .day-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px; padding: 0 4px; }
-  .day-title { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; letter-spacing: 3px; }
-  .day-title.yellow { color: var(--accent); }
-  .day-title.blue { color: var(--blue); }
-  .day-title.orange { color: var(--orange); }
-  .day-subtitle { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+/* img button */
+.ex-img-btn { display:flex; align-items:center; justify-content:center; height:100%; min-height:var(--row); border-right:1px solid var(--border); background:none; border-left:none; border-top:none; border-bottom:none; cursor:pointer; padding:0; color:var(--muted); font-size:0.65rem; transition:all .15s; }
+.ex-img-btn:hover { background:rgba(200,244,0,0.08); color:var(--accent); }
 
-  /* ── BLOCK ── */
-  .block { margin-bottom: 16px; border: 1px solid var(--border); background: var(--surface); border-radius: 4px; overflow: hidden; }
-  .block-header { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
-  .block-tag { font-size: 0.55rem; letter-spacing: 2px; text-transform: uppercase; padding: 2px 7px; border: 1px solid; border-radius: 2px; }
-  .block-tag.compound { border-color: var(--accent); color: var(--accent); }
-  .block-tag.accessory { border-color: var(--blue); color: var(--blue); }
-  .block-tag.cardio { border-color: var(--orange); color: var(--orange); }
-  .block-tag.teen { border-color: var(--green); color: var(--green); }
-  .block-name { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+/* yt link */
+.ex-yt { display:flex; align-items:center; justify-content:center; height:100%; min-height:var(--row); width:38px; border-right:1px solid var(--border); color:#e05; font-size:0.62rem; text-decoration:none; transition:background .15s; }
+.ex-yt:hover { background:rgba(255,0,60,0.1); }
 
-  /* ── EXERCISE CARD ── */
-  .ex-header { display: none; } /* hidden on mobile */
+/* name */
+.ex-name { padding:6px 10px; font-size:0.76rem; font-weight:500; color:var(--text); line-height:1.25; }
+.ex-hint { display:block; font-size:0.56rem; color:var(--muted2); font-weight:300; margin-top:2px; font-style:italic; }
 
-  .exercise-row {
-    padding: 14px;
-    border-bottom: 1px solid var(--border);
-    display: flex; flex-direction: column; gap: 10px;
-  }
-  .exercise-row:last-child { border-bottom: none; }
-  .exercise-row:active { background: var(--surface2); }
+/* stats */
+.ex-stat { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:var(--row); border-left:1px solid var(--border); font-size:0.88rem; font-weight:500; color:var(--text2); gap:1px; }
+.ex-stat span { font-size:0.45rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:400; }
+.ex-rpe-col { color:var(--muted2); font-size:0.78rem; }
 
-  /* Top row: name + yt button */
-  .ex-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-  .ex-name { font-size: 0.85rem; font-weight: 500; flex: 1; line-height: 1.3; }
-  .ex-name small { display: block; font-size: 0.62rem; color: var(--muted); font-weight: 300; margin-top: 3px; font-style: italic; }
-  .ex-yt {
-    flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%;
-    background: rgba(255,0,0,0.12); border: 1px solid rgba(255,0,0,0.25);
-    color: #ff4444; font-size: 0.75rem; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.15s;
-  }
-  .ex-yt:active { background: rgba(255,0,0,0.25); }
+/* weight stepper */
+.ex-wt { display:flex; align-items:center; border-left:1px solid var(--border); height:100%; min-height:var(--row); padding:0 5px; gap:3px; }
+.sb { width:26px; height:30px; background:var(--surface2); border:1px solid var(--border2); color:var(--text2); font-size:1rem; cursor:pointer; border-radius:3px; display:flex; align-items:center; justify-content:center; transition:all .1s; flex-shrink:0; font-family:'DM Mono',monospace; line-height:1; }
+.sb:hover { background:var(--border2); }
+.sb:active { background:var(--accent); color:#000; border-color:var(--accent); }
+.weight-input { flex:1; background:transparent; border:none; color:var(--accent); font-family:'DM Mono',monospace; font-size:0.95rem; font-weight:500; text-align:center; outline:none; min-width:0; padding:0; -moz-appearance:textfield; }
+.weight-input::-webkit-inner-spin-button, .weight-input::-webkit-outer-spin-button { -webkit-appearance:none; }
+.weight-input.teen-input { color:var(--green); }
+.kg-lbl { font-size:0.52rem; color:var(--muted); flex-shrink:0; }
 
-  /* Middle row: sets × reps / RPE badges */
-  .ex-meta { display: flex; gap: 8px; align-items: center; }
-  .ex-badge {
-    display: flex; flex-direction: column; align-items: center;
-    background: var(--surface2); border: 1px solid var(--border);
-    padding: 5px 10px; border-radius: 3px; min-width: 52px;
-  }
-  .ex-badge-label { font-size: 0.48rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
-  .ex-badge-val { font-size: 0.85rem; font-weight: 500; color: var(--text); }
+/* save btn */
+.ex-save { display:flex; align-items:center; justify-content:center; height:100%; min-height:var(--row); width:46px; border-left:1px solid var(--border); background:none; border-top:none; border-right:none; border-bottom:none; color:var(--muted2); font-size:1rem; cursor:pointer; transition:all .15s; }
+.ex-save:hover, .ex-save:active { background:var(--accent); color:#000; }
+.ex-save.saved { color:var(--accent); }
+.teen-profile .ex-save:hover, .teen-profile .ex-save:active { background:var(--green); color:#000; }
+.teen-profile .ex-save.saved { color:var(--green); }
+.teen-profile .weight-input { color:var(--green); }
 
-  /* Bottom row: weight stepper + save */
-  .ex-bottom { display: flex; align-items: center; gap: 10px; }
+/* ── HISTORY ── */
+.history-wrapper { border-top:1px solid var(--border); }
+.history-toggle { display:flex; align-items:center; gap:6px; font-size:0.6rem; color:var(--muted2); cursor:pointer; padding:7px 0 7px 10px; background:none; border:none; width:100%; text-align:left; font-family:'DM Mono',monospace; background:var(--surface); }
+.history-toggle:hover { color:var(--text); }
+.history-panel { display:none; }
+.history-panel.open { display:block; }
+.history-table { width:100%; border-collapse:collapse; font-size:0.7rem; }
+.history-table th { color:var(--muted); padding:5px 10px; font-weight:400; font-size:0.5rem; text-transform:uppercase; letter-spacing:1px; background:var(--surface2); white-space:nowrap; text-align:left; }
+.history-table th:nth-child(4) { white-space:nowrap; }
+.history-table td { padding:8px 10px; border-top:1px solid var(--border); color:var(--text); white-space:nowrap; vertical-align:middle; }
+.history-table td.w-val { color:var(--accent); font-weight:600; font-size:0.85rem; }
+.teen-profile .history-table td.w-val { color:var(--green); }
+.delta-pos { color:var(--accent) !important; font-weight:500; }
+.delta-neg { color:var(--accent2) !important; font-weight:500; }
+.delta-neu { color:var(--muted2) !important; }
+.del-btn { background:none; border:none; color:var(--muted); font-size:0.8rem; padding:3px 6px; cursor:pointer; font-family:'DM Mono',monospace; transition:color .15s; }
+.del-btn:hover { color:var(--accent2); }
 
-  .weight-stepper {
-    display: flex; align-items: center; flex: 1;
-    background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; overflow: hidden;
-  }
-  .step-btn {
-    width: 44px; height: 44px; background: none; border: none;
-    color: var(--muted2); font-size: 1.3rem; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.1s; flex-shrink: 0;
-    font-family: 'DM Mono', monospace;
-  }
-  .step-btn:active { background: var(--border); color: var(--text); }
-  .weight-input {
-    flex: 1; background: transparent; border: none;
-    color: var(--accent); font-family: 'DM Mono', monospace;
-    font-size: 1.25rem; font-weight: 500; text-align: center;
-    outline: none; padding: 0; min-width: 0; height: 44px;
-    -moz-appearance: textfield;
-  }
-  .weight-input::-webkit-inner-spin-button, .weight-input::-webkit-outer-spin-button { -webkit-appearance: none; }
-  .weight-input.teen-input { color: var(--green); }
-  .weight-unit-inline { font-size: 0.6rem; color: var(--muted); padding-right: 10px; flex-shrink: 0; }
+/* ── NOTES ── */
+.note-area { margin-top:10px; padding:12px; border:1px solid var(--border); background:var(--surface); border-radius:4px; }
+.note-label { font-size:0.56rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted2); margin-bottom:7px; }
+.note-input { width:100%; background:var(--bg); border:1px solid var(--border2); color:var(--text); font-family:'DM Mono',monospace; font-size:0.85rem; padding:10px 12px; outline:none; resize:none; min-height:60px; border-radius:2px; transition:border-color .2s; }
+.note-input:focus { border-color:var(--accent); }
+.note-save { margin-top:8px; width:100%; background:none; border:1px solid var(--border2); color:var(--muted2); font-family:'DM Mono',monospace; font-size:0.68rem; padding:10px; cursor:pointer; border-radius:2px; transition:all .15s; }
+.note-save:hover { border-color:var(--accent); color:var(--accent); }
+.cardio-note { padding:12px; font-size:0.7rem; color:var(--muted2); line-height:1.8; }
 
-  .ex-save {
-    width: 56px; height: 44px; border-radius: 3px;
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--muted); font-size: 1.1rem; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.15s; flex-shrink: 0;
-  }
-  .ex-save:active { background: var(--accent); color: #000; border-color: var(--accent); }
-  .ex-save.saved { background: rgba(212,255,0,0.1); color: var(--accent); border-color: var(--accent); }
-  .teen-profile .ex-save:active { background: var(--green); border-color: var(--green); color: #000; }
-  .teen-profile .ex-save.saved { background: rgba(0,229,160,0.1); color: var(--green); border-color: var(--green); }
+/* ── STATUS ── */
+#status-bar { position:fixed; bottom:var(--nav); left:0; right:0; background:var(--surface); border-top:1px solid var(--border); padding:5px 14px; display:flex; align-items:center; justify-content:space-between; font-size:0.58rem; color:var(--muted); z-index:98; }
+#status-msg.ok { color:var(--accent); }
+#status-msg.err { color:var(--accent2); }
 
-  /* ── HISTORY ── */
-  .history-wrapper { border-top: 1px solid var(--border); }
-  .history-toggle {
-    display: flex; align-items: center; gap: 8px; font-size: 0.65rem;
-    color: var(--muted); cursor: pointer; padding: 12px 14px;
-    background: none; border: none; width: 100%; text-align: left;
-    font-family: 'DM Mono', monospace; transition: color 0.15s;
-  }
-  .history-toggle:active { color: var(--text); }
-  .history-panel { display: none; padding: 14px; background: var(--bg); border-top: 1px solid var(--border); }
-  .history-panel.open { display: block; }
+/* ── BOTTOM NAV ── */
+#bottom-nav { position:fixed; bottom:0; left:0; right:0; height:var(--nav); background:var(--surface); border-top:1px solid var(--border); display:flex; z-index:99; padding-bottom:env(safe-area-inset-bottom,0px); }
+.nav-btn { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; background:none; border:none; font-family:'DM Mono',monospace; font-size:0.5rem; color:var(--muted2); text-transform:uppercase; letter-spacing:1px; border-top:2px solid transparent; transition:all .15s; }
+.nav-icon { font-size:1.05rem; line-height:1; }
+.nav-divider { width:1px; background:var(--border); margin:8px 0; }
+.nav-btn.active[data-day="lunes"] { color:var(--accent); border-top-color:var(--accent); }
+.nav-btn.active[data-day="miercoles"] { color:var(--blue); border-top-color:var(--blue); }
+.nav-btn.active[data-day="viernes"] { color:var(--orange); border-top-color:var(--orange); }
 
-  .history-chart { display: flex; align-items: flex-end; gap: 4px; height: 56px; margin-bottom: 14px; }
-  .h-bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; min-width: 0; }
-  .h-bar { width: 100%; min-height: 3px; border-radius: 2px 2px 0 0; opacity: 0.85; background: var(--accent); }
-  .h-bar.teen-bar { background: var(--green); }
-  .h-bar-val { font-size: 0.5rem; color: var(--muted2); white-space: nowrap; }
-  .h-bar-date { font-size: 0.46rem; color: var(--muted); white-space: nowrap; }
-
-  .history-table { width: 100%; border-collapse: collapse; font-size: 0.68rem; }
-  .history-table th { text-align: left; color: var(--muted); padding: 5px 6px; font-weight: 400; font-size: 0.58rem; text-transform: uppercase; letter-spacing: 1px; }
-  .history-table td { padding: 7px 6px; border-top: 1px solid var(--border); }
-  .history-table td.w-val { color: var(--accent); font-weight: 500; }
-  .teen-profile .history-table td.w-val { color: var(--green); }
-  .delta-pos { color: var(--accent) !important; }
-  .delta-neg { color: var(--accent2) !important; }
-  .delta-neu { color: var(--muted) !important; }
-
-  /* ── NOTES ── */
-  .note-area { margin-top: 12px; padding: 14px; border: 1px solid var(--border); background: var(--surface); border-radius: 4px; }
-  .note-label { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 8px; }
-  .note-input {
-    width: 100%; background: var(--bg); border: 1px solid var(--border);
-    color: var(--text); font-family: 'DM Mono', monospace;
-    font-size: 0.9rem; padding: 12px; outline: none; resize: none;
-    min-height: 72px; border-radius: 2px; transition: border-color 0.2s;
-  }
-  .note-input:focus { border-color: var(--accent); }
-  .note-save {
-    margin-top: 10px; width: 100%; background: none; border: 1px solid var(--border);
-    color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.75rem;
-    padding: 12px; cursor: pointer; border-radius: 2px; transition: all 0.15s;
-  }
-  .note-save:active { border-color: var(--accent); color: var(--accent); }
-
-  /* ── CARDIO NOTE ── */
-  .cardio-note { padding: 14px; font-size: 0.72rem; color: var(--muted); line-height: 1.8; }
-
-  /* ── STATUS BAR (bottom) ── */
-  #status-bar {
-    position: fixed; bottom: var(--nav-h); left: 0; right: 0;
-    background: var(--surface); border-top: 1px solid var(--border);
-    padding: 6px 16px; display: flex; align-items: center; justify-content: space-between;
-    font-size: 0.6rem; color: var(--muted); z-index: 98;
-  }
-  #status-msg.ok { color: var(--accent); }
-  #status-msg.err { color: var(--accent2); }
-  .status-right { display: flex; gap: 12px; }
-
-  /* ── BOTTOM NAV ── */
-  #bottom-nav {
-    position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-h);
-    background: var(--surface); border-top: 1px solid var(--border);
-    display: flex; z-index: 99;
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  .nav-btn {
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 4px; cursor: pointer; background: none; border: none;
-    font-family: 'DM Mono', monospace; font-size: 0.55rem; color: var(--muted);
-    text-transform: uppercase; letter-spacing: 1px; transition: all 0.15s;
-    border-top: 2px solid transparent;
-  }
-  .nav-btn .nav-icon { font-size: 1.2rem; line-height: 1; }
-  .nav-btn.active[data-day="lunes"] { color: var(--accent); border-top-color: var(--accent); }
-  .nav-btn.active[data-day="miercoles"] { color: var(--blue); border-top-color: var(--blue); }
-  .nav-btn.active[data-day="viernes"] { color: var(--orange); border-top-color: var(--orange); }
-  .nav-btn.active[data-day="dia1"] { color: var(--accent); border-top-color: var(--accent); }
-  .nav-btn.active[data-day="dia2"] { color: var(--blue); border-top-color: var(--blue); }
-  .nav-btn.active[data-day="dia3"] { color: var(--orange); border-top-color: var(--orange); }
-  .nav-divider { width: 1px; background: var(--border); margin: 8px 0; }
-
-  /* ── YT MODAL ── */
-  #yt-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 3000; align-items: flex-end; justify-content: center; }
-  #yt-modal.open { display: flex; }
-  .yt-inner { background: var(--surface); width: 100%; border-top: 1px solid var(--border); padding: 16px; }
-  .yt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-  .yt-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 2px; }
-  .yt-close { background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.7rem; padding: 8px 14px; cursor: pointer; border-radius: 2px; }
-  .yt-embed { position: relative; padding-bottom: 56.25%; height: 0; border-radius: 2px; overflow: hidden; }
-  .yt-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
-
-  /* ── DESKTOP OVERRIDE ── */
-  @media (min-width: 700px) {
-    body { padding-bottom: 40px; }
-    #bottom-nav { display: none; }
-    #status-bar { bottom: 0; }
-    main { padding: 24px 28px; max-width: 860px; margin: 0 auto; }
-
-    .tabs { display: flex; height: auto; position: sticky; }
-    .tab { padding: 14px 22px; border-left: none; border-right: none; }
-    .tab:not(:first-child) { border-left: 1px solid var(--border); }
-
-    .profile-bar { display: flex; }
-    .profile-btn { padding: 13px 24px; justify-content: flex-start; }
-    .profile-btn:first-child { border-right: 1px solid var(--border); }
-
-    /* Desktop: restore table layout for exercises */
-    .ex-header {
-      display: grid;
-      grid-template-columns: 36px 1fr 64px 74px 58px 140px 52px;
-      border-bottom: 1px solid var(--border); background: var(--bg);
-    }
-    .ex-header span { padding: 7px 10px; font-size: 0.52rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); }
-    .ex-header span:not(:first-child) { border-left: 1px solid var(--border); text-align: center; }
-
-    .exercise-row {
-      display: grid;
-      grid-template-columns: 36px 1fr 64px 74px 58px 140px 52px;
-      flex-direction: unset; gap: 0; padding: 0;
-      border-bottom: 1px solid var(--border); align-items: center;
-    }
-    .exercise-row:last-child { border-bottom: none; }
-    .exercise-row:hover { background: var(--surface2); }
-
-    .ex-top { display: contents; }
-    .ex-meta { display: contents; }
-    .ex-bottom { display: contents; }
-
-    .ex-yt {
-      width: 36px; height: 100%; border-radius: 0;
-      background: none; border: none; border-right: 1px solid var(--border);
-      color: var(--muted); font-size: 0.7rem; min-height: 46px;
-    }
-    .ex-yt:active { background: rgba(255,0,0,0.1); color: #ff4444; }
-
-    .ex-name { padding: 12px 14px; font-size: 0.74rem; }
-    .ex-name small { font-size: 0.57rem; }
-
-    .ex-badge { display: none; }
-
-    .ex-sets, .ex-reps, .ex-rpe {
-      display: flex; align-items: center; justify-content: center;
-      padding: 12px 8px; font-size: 0.68rem; color: var(--muted2);
-      border-left: 1px solid var(--border); height: 100%;
-    }
-
-    .ex-bottom { display: flex; align-items: center; border-left: 1px solid var(--border); padding: 6px 10px; }
-    .weight-stepper { background: var(--bg); border: 1px solid var(--border); border-radius: 2px; }
-    .step-btn { width: 28px; height: 36px; font-size: 1rem; }
-    .weight-input { font-size: 0.9rem; height: 36px; }
-    .weight-unit-inline { font-size: 0.56rem; }
-
-    .ex-save {
-      width: 52px; height: 100%; min-height: 46px; border-radius: 0;
-      border: none; border-left: 1px solid var(--border); background: none; color: var(--muted);
-    }
-    .ex-save:hover { background: var(--accent); color: #000; }
-    .teen-profile .ex-save:hover { background: var(--green); color: #000; }
-
-    #yt-modal { align-items: center; }
-    .yt-inner { max-width: 720px; width: 95%; border: 1px solid var(--border); border-top: 1px solid var(--border); border-radius: 2px; }
-  }
+/* ── DESKTOP ── */
+@media(min-width:700px) {
+  body { padding-bottom:32px; }
+  #bottom-nav { display:none; }
+  #status-bar { bottom:0; }
+  main { padding:20px 24px; }
+  .tabs { display:flex; height:auto; max-width:960px; margin-left:auto; margin-right:auto; position:sticky; }
+  .tab { padding:12px 24px; flex:none; border-left:none; }
+  .tab:not(:first-child) { border-left:1px solid var(--border); }
+  .profile-bar { max-width:960px; margin:0 auto; display:flex; }
+  .profile-btn { padding:11px 24px; justify-content:flex-start; }
+  .ex-header { display:grid; grid-template-columns:38px 38px 1fr 46px 60px 46px 140px 46px; background:var(--bg); border-bottom:1px solid var(--border); }
+  .ex-header span { padding:6px 8px; font-size:0.5rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted); text-align:center; border-left:1px solid var(--border); }
+  .ex-header span:first-child, .ex-header span:nth-child(2) { border-left:none; }
+}
 </style>
 </head>
 <body>
 
-<!-- LOGIN OVERLAY -->
-<div id="login-overlay">
-  <div class="login-box">
-    <div class="login-logo">GYM<span>LOG</span></div>
-    <div class="login-sub">Tracker de fuerza</div>
-    <div class="login-label">Contraseña</div>
-    <input type="password" class="login-input" id="login-pwd" placeholder="••••••••••••" onkeydown="if(event.key==='Enter')unlock()">
-    <button class="login-btn" onclick="unlock()">ENTRAR</button>
-    <div id="login-err">Contraseña incorrecta</div>
+<!-- CFG MODAL -->
+<div id="cfg-overlay">
+  <div class="cfg-box">
+    <h2>CONFIGURACIÓN</h2>
+    <p>Introduce la contraseña para conectar con Supabase y guardar el historial. La sesión se mantiene hasta cerrar el navegador.</p>
+    <div class="cfg-field">
+      <label>Contraseña</label>
+      <input type="password" id="cfg-pwd" placeholder="••••••••••••">
+    </div>
+    <button class="cfg-btn" id="cfg-submit">CONECTAR</button>
+    <button class="cfg-cancel" id="cfg-cancel-btn">Cancelar</button>
+    <div id="cfg-err">Contraseña incorrecta</div>
   </div>
 </div>
 
-
+<!-- INFO MODAL -->
+<div id="info-overlay">
+  <div class="info-box">
+    <div class="info-box-header">
+      <div class="info-box-title" id="info-modal-title">—</div>
+      <button class="info-box-close" id="info-close-btn">✕ cerrar</button>
+    </div>
+    <div class="info-img-wrap" id="info-img-wrap"></div>
+    <div class="info-section">
+      <div class="info-section-title">Músculos</div>
+      <div class="info-muscles" id="info-muscles"></div>
+    </div>
+    <div class="info-section">
+      <div class="info-section-title">Ejecución</div>
+      <ol class="info-steps" id="info-steps"></ol>
+    </div>
+  </div>
+</div>
 
 <!-- HEADER -->
 <header>
   <div class="logo">GYM<span>LOG</span></div>
-  <div style="font-size:0.6rem;color:var(--muted)" id="header-status"></div>
+  <div class="hdr-right">
+    <span id="db-dot">⚫</span>
+    <button class="cfg-open-btn" id="cfg-open-btn">⚙ config</button>
+  </div>
 </header>
 
 <!-- PROFILES -->
 <div class="profile-bar">
-  <button class="profile-btn active" data-profile="adult" onclick="switchProfile('adult')">
+  <button class="profile-btn active" data-profile="adult" id="pbtn-adult">
     <span class="p-dot"></span>46 años · 83 kg
   </button>
-  <button class="profile-btn" data-profile="teen" onclick="switchProfile('teen')">
-    <span class="p-dot"></span>Mario · 14 años
+  <button class="profile-btn" data-profile="teen" id="pbtn-teen">
+    <span class="p-dot"></span>Júnior · 14 años
   </button>
 </div>
 
-<!-- ═══════════════════════════════ ADULTO ═══════════════════════════════ -->
+<!-- ═══ ADULTO ═══ -->
 <div id="profile-adult">
   <div class="tabs" id="tabs-adult">
-    <button class="tab active" data-color="yellow" onclick="switchDay('adult','lunes')">LUNES</button>
-    <button class="tab" data-color="blue" onclick="switchDay('adult','miercoles')">MIÉRCOLES</button>
-    <button class="tab" data-color="orange" onclick="switchDay('adult','viernes')">VIERNES</button>
+    <button class="tab active" data-color="yellow" data-day="lunes" data-profile="adult">LUNES</button>
+    <button class="tab" data-color="blue" data-day="miercoles" data-profile="adult">MIÉRCOLES</button>
+    <button class="tab" data-color="orange" data-day="viernes" data-profile="adult">VIERNES</button>
   </div>
   <main>
 
     <!-- LUNES -->
     <div class="day-panel active" id="adult-lunes">
       <div class="day-header"><div class="day-title yellow">LUNES</div><div class="day-subtitle">Empuje · 60 min · Fuerza</div></div>
-
       <div class="block">
         <div class="block-header"><span class="block-tag compound">COMPUESTO</span><span class="block-name">Bloque principal</span></div>
-        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
-
-        <div class="exercise-row" data-ex="a-press-banca" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Press de banca<small>Barra · descanso 3-4 min</small></div>
-            <button class="ex-yt" onclick="openYT('Press de banca','dJNsNzaRAeE')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">4</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">5</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">8</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">4</div>
-            <div class="ex-reps" style="display:none">5</div>
-            <div class="ex-rpe" style="display:none">8</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="2.5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="ex-header"><span></span><span></span><span>Ejercicio</span><span>S</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+        <div class="exercise-row" data-ex="a-press-banca" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Bench_press_2.jpg/640px-Bench_press_2.jpg" data-img-hint="Barra · agarre prono · bajar hasta pecho · descanso 3-4 min">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=dJNsNzaRAeE" target="_blank">▶</a>
+          <div class="ex-name">Press de banca<span class="ex-hint">Barra · descanso 3-4 min</span></div>
+          <div class="ex-stat">4<span>s</span></div><div class="ex-stat">5<span>r</span></div><div class="ex-stat ex-rpe-col">8<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="2.5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="a-press-militar" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Press militar<small>Barra · de pie · descanso 3 min</small></div>
-            <button class="ex-yt" onclick="openYT('Press militar barra','2yjwXTZQDDI')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">6</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7-8</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">6</div>
-            <div class="ex-rpe" style="display:none">7-8</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="2.5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="a-press-militar" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Overhead_press_2.jpg/480px-Overhead_press_2.jpg" data-img-hint="De pie · barra · empujar verticalmente sobre la cabeza">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=2yjwXTZQDDI" target="_blank">▶</a>
+          <div class="ex-name">Press militar<span class="ex-hint">Barra · de pie · descanso 3 min</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">6<span>r</span></div><div class="ex-stat ex-rpe-col">7-8<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="2.5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
       </div>
-
       <div class="block">
         <div class="block-header"><span class="block-tag accessory">ACCESORIO</span><span class="block-name">Volumen de apoyo</span></div>
-        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
-
-        <div class="exercise-row" data-ex="a-fondos-lastre" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Fondos con lastre<small>Cinturón · pecho adelante</small></div>
-            <button class="ex-yt" onclick="openYT('Fondos con lastre','wjUmnZH528Y')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">8</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="2.5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="ex-header"><span></span><span></span><span>Ejercicio</span><span>S</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+        <div class="exercise-row" data-ex="a-fondos-lastre" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Dips_gym.jpg/480px-Dips_gym.jpg" data-img-hint="Cinturón con lastre · inclinar el pecho hacia adelante para trabajar pectoral">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=wjUmnZH528Y" target="_blank">▶</a>
+          <div class="ex-name">Fondos con lastre<span class="ex-hint">Cinturón · pecho adelante</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">8<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="2.5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="a-aperturas" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Aperturas mancuerna<small>Banco plano · codo semiflexionado</small></div>
-            <button class="ex-yt" onclick="openYT('Aperturas con mancuerna','eozdVDA78K0')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">10-12</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">10-12</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="2">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="a-aperturas" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Chest_fly.jpg/480px-Chest_fly.jpg" data-img-hint="Banco plano · mancuernas · codo semiflexionado · apertura amplia">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=eozdVDA78K0" target="_blank">▶</a>
+          <div class="ex-name">Aperturas mancuerna<span class="ex-hint">Banco plano · codo semiflexionado</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">10-12<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="2"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="a-extension-triceps" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Extensión tríceps (polea)<small>Cuerda o barra recta</small></div>
-            <button class="ex-yt" onclick="openYT('Extensión tríceps polea','2-LAMcpzODU')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">10-12</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">10-12</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="2.5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="a-extension-triceps" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Triceps_pushdown_2.jpg/480px-Triceps_pushdown_2.jpg" data-img-hint="Polea alta · cuerda o barra · codo pegado al cuerpo durante todo el movimiento">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=2-LAMcpzODU" target="_blank">▶</a>
+          <div class="ex-name">Extensión tríceps (polea)<span class="ex-hint">Cuerda o barra recta</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">10-12<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="2.5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="a-elevaciones-lat" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Elevaciones laterales<small>Mancuernas · control en bajada</small></div>
-            <button class="ex-yt" onclick="openYT('Elevaciones laterales','3VcKaXpzqRo')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">12-15</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">12-15</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="2">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="a-elevaciones-lat" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Lateral_raise.jpg/480px-Lateral_raise.jpg" data-img-hint="Mancuernas · elevar lateralmente hasta hombros · controlar la bajada">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=3VcKaXpzqRo" target="_blank">▶</a>
+          <div class="ex-name">Elevaciones laterales<span class="ex-hint">Mancuernas · control en bajada</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">12-15<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="2"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
       </div>
-
-      <div class="note-area">
-        <div class="note-label">Notas del día</div>
-        <textarea class="note-input" id="note-adult-lunes" placeholder="Sensaciones, ajustes, observaciones..."></textarea>
-        <button class="note-save" onclick="saveNote('adult','lunes')">Guardar nota</button>
-      </div>
+      <div class="note-area"><div class="note-label">Notas</div><textarea class="note-input" id="note-adult-lunes" placeholder="Sensaciones, ajustes..."></textarea><button class="note-save" data-profile="adult" data-day="lunes">Guardar nota</button></div>
     </div>
 
     <!-- MIÉRCOLES -->
     <div class="day-panel" id="adult-miercoles">
       <div class="day-header"><div class="day-title blue">MIÉRCOLES</div><div class="day-subtitle">Tirón + Pierna · 60 min · Fuerza</div></div>
-
       <div class="block">
         <div class="block-header"><span class="block-tag compound">COMPUESTO</span><span class="block-name">Bloque principal</span></div>
-        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
-
-        <div class="exercise-row" data-ex="a-peso-muerto" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Peso muerto<small>Convencional · descanso 4 min</small></div>
-            <button class="ex-yt" onclick="openYT('Peso muerto convencional','op9kVnSso6Q')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">4</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">4</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">8</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">4</div>
-            <div class="ex-reps" style="display:none">4</div>
-            <div class="ex-rpe" style="display:none">8</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="ex-header"><span></span><span></span><span>Ejercicio</span><span>S</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+        <div class="exercise-row" data-ex="a-peso-muerto" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Deadlift_2.jpg/480px-Deadlift_2.jpg" data-img-hint="Convencional · espalda neutra · empujar el suelo con los pies · descanso 4 min">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=op9kVnSso6Q" target="_blank">▶</a>
+          <div class="ex-name">Peso muerto<span class="ex-hint">Convencional · descanso 4 min</span></div>
+          <div class="ex-stat">4<span>s</span></div><div class="ex-stat">4<span>r</span></div><div class="ex-stat ex-rpe-col">8<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="a-dominadas" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Dominadas con lastre<small>Agarre prono · rango completo</small></div>
-            <button class="ex-yt" onclick="openYT('Dominadas con lastre','eGo4IYlbE5g')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">4</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">5</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">8</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">4</div>
-            <div class="ex-reps" style="display:none">5</div>
-            <div class="ex-rpe" style="display:none">8</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="2.5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="a-dominadas" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Pull_up_2.jpg/480px-Pull_up_2.jpg" data-img-hint="Agarre prono ancho · rango completo · no balancear el cuerpo">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=eGo4IYlbE5g" target="_blank">▶</a>
+          <div class="ex-name">Dominadas con lastre<span class="ex-hint">Agarre prono · rango completo</span></div>
+          <div class="ex-stat">4<span>s</span></div><div class="ex-stat">5<span>r</span></div><div class="ex-stat ex-rpe-col">8<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="2.5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="a-sentadilla" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Sentadilla<small>Barra alta · descanso 3-4 min</small></div>
-            <button class="ex-yt" onclick="openYT('Sentadilla con barra','ultWZbUMPL8')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">5</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">8</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">5</div>
-            <div class="ex-rpe" style="display:none">8</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="a-sentadilla" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Squats.jpg/480px-Squats.jpg" data-img-hint="Barra alta · rodillas sobre pies · bajar hasta paralelo · descanso 3-4 min">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=ultWZbUMPL8" target="_blank">▶</a>
+          <div class="ex-name">Sentadilla<span class="ex-hint">Barra alta · descanso 3-4 min</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">5<span>r</span></div><div class="ex-stat ex-rpe-col">8<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
       </div>
-
       <div class="block">
         <div class="block-header"><span class="block-tag accessory">ACCESORIO</span><span class="block-name">Volumen de apoyo</span></div>
-        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
-
-        <div class="exercise-row" data-ex="a-remo-barra" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Remo Pendlay<small>Barra · espalda paralela al suelo</small></div>
-            <button class="ex-yt" onclick="openYT('Remo Pendlay','sSIekHmkDmo')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">6</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7-8</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">6</div>
-            <div class="ex-rpe" style="display:none">7-8</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="ex-header"><span></span><span></span><span>Ejercicio</span><span>S</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+        <div class="exercise-row" data-ex="a-remo-barra" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Bent_over_row.jpg/480px-Bent_over_row.jpg" data-img-hint="Torso paralelo al suelo · barra · tirar hacia el abdomen · Pendlay">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=sSIekHmkDmo" target="_blank">▶</a>
+          <div class="ex-name">Remo Pendlay<span class="ex-hint">Barra · espalda paralela al suelo</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">6<span>r</span></div><div class="ex-stat ex-rpe-col">7-8<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="a-curl-biceps" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Curl bíceps (barra)<small>Sin balanceo · codo fijo</small></div>
-            <button class="ex-yt" onclick="openYT('Curl bíceps con barra','kwG2ipFRgfo')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8-10</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">8-10</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="2.5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="a-curl-biceps" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Barbell_curl_2.jpg/480px-Barbell_curl_2.jpg" data-img-hint="Barra · codo fijo · sin balanceo de torso · supinación completa">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=kwG2ipFRgfo" target="_blank">▶</a>
+          <div class="ex-name">Curl bíceps (barra)<span class="ex-hint">Sin balanceo · codo fijo</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">8-10<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="2.5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="a-prensa" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Prensa de pierna<small>Pies altos y separados</small></div>
-            <button class="ex-yt" onclick="openYT('Prensa de pierna','IZxyjW7MPJQ')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">8</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="10">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="a-prensa" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Leg_press_2.jpg/480px-Leg_press_2.jpg" data-img-hint="Pies altos y separados · rodillas alineadas con pies · rango completo">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=IZxyjW7MPJQ" target="_blank">▶</a>
+          <div class="ex-name">Prensa de pierna<span class="ex-hint">Pies altos y separados</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">8<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="10"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
       </div>
-
-      <div class="note-area">
-        <div class="note-label">Notas del día</div>
-        <textarea class="note-input" id="note-adult-miercoles" placeholder="Sensaciones, ajustes, observaciones..."></textarea>
-        <button class="note-save" onclick="saveNote('adult','miercoles')">Guardar nota</button>
-      </div>
+      <div class="note-area"><div class="note-label">Notas</div><textarea class="note-input" id="note-adult-miercoles" placeholder="Sensaciones, ajustes..."></textarea><button class="note-save" data-profile="adult" data-day="miercoles">Guardar nota</button></div>
     </div>
 
     <!-- VIERNES -->
     <div class="day-panel" id="adult-viernes">
       <div class="day-header"><div class="day-title orange">VIERNES</div><div class="day-subtitle">Full body moderado + 45 min natación</div></div>
-
       <div class="block">
-        <div class="block-header"><span class="block-tag compound">COMPUESTO</span><span class="block-name">Intensidad controlada — nadas después</span></div>
-        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
-
-        <div class="exercise-row" data-ex="a-bulgara" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Sentadilla búlgara<small>Mancuernas · pie elevado</small></div>
-            <button class="ex-yt" onclick="openYT('Sentadilla búlgara','2C-uNgKwPLE')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">6</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">6</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="2">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="block-header"><span class="block-tag compound">COMPUESTO</span><span class="block-name">Intensidad moderada — nadas después</span></div>
+        <div class="ex-header"><span></span><span></span><span>Ejercicio</span><span>S</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+        <div class="exercise-row" data-ex="a-bulgara" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Bulgarian_split_squat.jpg/480px-Bulgarian_split_squat.jpg" data-img-hint="Pie trasero elevado · mancuernas · bajar verticalmente · rodilla delantera sobre pie">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=2C-uNgKwPLE" target="_blank">▶</a>
+          <div class="ex-name">Sentadilla búlgara<span class="ex-hint">Mancuernas · pie elevado</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">6<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="2"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="a-press-inclinado" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Press inclinado (mancuerna)<small>45° · rango completo</small></div>
-            <button class="ex-yt" onclick="openYT('Press inclinado mancuerna','8iPEnn-ltC8')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">8</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="2">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="a-press-inclinado" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Incline_dumbbell_press.jpg/480px-Incline_dumbbell_press.jpg" data-img-hint="Banco 30-45° · mancuernas · rango completo · no arquesr la espalda">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=8iPEnn-ltC8" target="_blank">▶</a>
+          <div class="ex-name">Press inclinado (mancuerna)<span class="ex-hint">45° · rango completo</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">8<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="2"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="a-remo-mancuerna" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Remo a una mano<small>Mancuerna · apoyo en banco</small></div>
-            <button class="ex-yt" onclick="openYT('Remo a una mano','pYcpY20QaE8')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">8</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="2">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="a-remo-mancuerna" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Dumbbell_row.jpg/480px-Dumbbell_row.jpg" data-img-hint="Apoyo en banco · mancuerna · tirar codo hacia atrás · no rotar el torso">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=pYcpY20QaE8" target="_blank">▶</a>
+          <div class="ex-name">Remo a una mano<span class="ex-hint">Mancuerna · apoyo en banco</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">8<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="2"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
       </div>
-
       <div class="block">
         <div class="block-header"><span class="block-tag accessory">ACCESORIO</span><span class="block-name">Complemento</span></div>
-        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
-
-        <div class="exercise-row" data-ex="a-hip-thrust" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Hip thrust (barra)<small>Hombros en banco · aprieta glúteo</small></div>
-            <button class="ex-yt" onclick="openYT('Hip thrust con barra','xDmFkJxPzeM')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">10</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">10</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="ex-header"><span></span><span></span><span>Ejercicio</span><span>S</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+        <div class="exercise-row" data-ex="a-hip-thrust" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Hip_thrust_2.jpg/480px-Hip_thrust_2.jpg" data-img-hint="Hombros sobre banco · barra en caderas · apretar glúteo arriba · no hiperlordosis">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=xDmFkJxPzeM" target="_blank">▶</a>
+          <div class="ex-name">Hip thrust (barra)<span class="ex-hint">Hombros en banco · aprieta glúteo</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">10<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="a-face-pull" data-profile="adult">
-          <div class="ex-top">
-            <div class="ex-name">Face pull (polea)<small>Cuerda · polea alta · codos arriba</small></div>
-            <button class="ex-yt" onclick="openYT('Face pull en polea','rep-qVOkqgk')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">15</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">6</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">15</div>
-            <div class="ex-rpe" style="display:none">6</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input" placeholder="—" step="2.5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="a-face-pull" data-profile="adult" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Face_pull_exercise.jpg/480px-Face_pull_exercise.jpg" data-img-hint="Polea alta · cuerda · codos arriba · tirar hacia la cara · rotación externa">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=rep-qVOkqgk" target="_blank">▶</a>
+          <div class="ex-name">Face pull (polea)<span class="ex-hint">Cuerda · polea alta · codos arriba</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">15<span>r</span></div><div class="ex-stat ex-rpe-col">6<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input" placeholder="—" step="2.5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
       </div>
-
       <div class="block">
         <div class="block-header"><span class="block-tag cardio">NATACIÓN</span><span class="block-name">45 min · post sala</span></div>
-        <div class="cardio-note">10 min calentamiento (espalda suave) → 20 min series técnicas o 50m continuos → 15 min enfriamiento. Cardiovascular + recuperación activa. No elevar la intensidad de sala por la natación posterior.</div>
+        <div class="cardio-note">10 min calentamiento (espalda suave) → 20 min series técnicas o 50m continuos → 15 min enfriamiento. No elevar la intensidad de sala por la natación posterior.</div>
       </div>
-
-      <div class="note-area">
-        <div class="note-label">Notas del día</div>
-        <textarea class="note-input" id="note-adult-viernes" placeholder="Sensaciones, ajustes, observaciones..."></textarea>
-        <button class="note-save" onclick="saveNote('adult','viernes')">Guardar nota</button>
-      </div>
+      <div class="note-area"><div class="note-label">Notas</div><textarea class="note-input" id="note-adult-viernes" placeholder="Sensaciones, ajustes..."></textarea><button class="note-save" data-profile="adult" data-day="viernes">Guardar nota</button></div>
     </div>
 
   </main>
 </div>
 
-<!-- ═══════════════════════════════ JÚNIOR ═══════════════════════════════ -->
+<!-- ═══ JÚNIOR ═══ -->
 <div id="profile-teen" class="teen-profile" style="display:none">
   <div class="tabs" id="tabs-teen">
-    <button class="tab active" data-color="yellow" onclick="switchDay('teen','lunes')">LUNES</button>
-    <button class="tab" data-color="blue" onclick="switchDay('teen','miercoles')">MIÉRCOLES</button>
-    <button class="tab" data-color="orange" onclick="switchDay('teen','viernes')">VIERNES</button>
+    <button class="tab active" data-color="yellow" data-day="lunes" data-profile="teen">LUNES</button>
+    <button class="tab" data-color="blue" data-day="miercoles" data-profile="teen">MIÉRCOLES</button>
+    <button class="tab" data-color="orange" data-day="viernes" data-profile="teen">VIERNES</button>
   </div>
   <main>
 
-    <!-- LUNES: EMPUJE -->
+    <!-- LUNES TEEN -->
     <div class="day-panel active" id="teen-lunes">
       <div class="day-header"><div class="day-title yellow">LUNES</div><div class="day-subtitle">Empuje · 60 min</div></div>
-
       <div class="block">
         <div class="block-header"><span class="block-tag compound">COMPUESTO</span><span class="block-name">Bloque principal</span></div>
-        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
-
-        <div class="exercise-row" data-ex="t-press-banca" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Press de banca<small>Barra · descanso 3-4 min</small></div>
-            <button class="ex-yt" onclick="openYT('Press de banca','dJNsNzaRAeE')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">4</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">5</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">8</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">4</div>
-            <div class="ex-reps" style="display:none">5</div>
-            <div class="ex-rpe" style="display:none">8</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="2.5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="ex-header"><span></span><span></span><span>Ejercicio</span><span>S</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+        <div class="exercise-row" data-ex="t-press-banca" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Bench_press_2.jpg/640px-Bench_press_2.jpg" data-img-hint="Barra · agarre prono · bajar hasta pecho · siempre con supervisor">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=dJNsNzaRAeE" target="_blank">▶</a>
+          <div class="ex-name">Press de banca<span class="ex-hint">Barra · con supervisor</span></div>
+          <div class="ex-stat">4<span>s</span></div><div class="ex-stat">5<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="2.5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="t-press-militar" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Press militar<small>Barra · de pie · descanso 3 min</small></div>
-            <button class="ex-yt" onclick="openYT('Press militar barra','2yjwXTZQDDI')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">6</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7-8</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">6</div>
-            <div class="ex-rpe" style="display:none">7-8</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="2.5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="t-press-militar" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Overhead_press_2.jpg/480px-Overhead_press_2.jpg" data-img-hint="De pie · barra ligera · empujar verticalmente sobre la cabeza">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=2yjwXTZQDDI" target="_blank">▶</a>
+          <div class="ex-name">Press militar<span class="ex-hint">Barra · de pie</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">6<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="2.5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
       </div>
-
       <div class="block">
         <div class="block-header"><span class="block-tag accessory">ACCESORIO</span><span class="block-name">Volumen de apoyo</span></div>
-        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
-
-        <div class="exercise-row" data-ex="t-fondos-lastre" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Fondos con lastre<small>Cinturón · pecho adelante</small></div>
-            <button class="ex-yt" onclick="openYT('Fondos con lastre','wjUmnZH528Y')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">8</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="2.5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="ex-header"><span></span><span></span><span>Ejercicio</span><span>S</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+        <div class="exercise-row" data-ex="t-fondos-lastre" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Dips_gym.jpg/480px-Dips_gym.jpg" data-img-hint="Sin lastre al inicio · añadir peso cuando domines el movimiento">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=wjUmnZH528Y" target="_blank">▶</a>
+          <div class="ex-name">Fondos con lastre<span class="ex-hint">Cinturón · pecho adelante</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">8<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="2.5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="t-aperturas" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Aperturas mancuerna<small>Banco plano · codo semiflexionado</small></div>
-            <button class="ex-yt" onclick="openYT('Aperturas con mancuerna','eozdVDA78K0')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">10-12</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">10-12</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="2">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="t-aperturas" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Chest_fly.jpg/480px-Chest_fly.jpg" data-img-hint="Banco plano · mancuernas ligeras · codo semiflexionado">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=eozdVDA78K0" target="_blank">▶</a>
+          <div class="ex-name">Aperturas mancuerna<span class="ex-hint">Banco plano · codo semiflexionado</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">10-12<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="2"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="t-extension-triceps" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Extensión tríceps (polea)<small>Cuerda o barra recta</small></div>
-            <button class="ex-yt" onclick="openYT('Extensión tríceps polea','2-LAMcpzODU')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">10-12</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">10-12</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="2.5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="t-extension-triceps" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Triceps_pushdown_2.jpg/480px-Triceps_pushdown_2.jpg" data-img-hint="Polea alta · cuerda · codo pegado al cuerpo">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=2-LAMcpzODU" target="_blank">▶</a>
+          <div class="ex-name">Extensión tríceps (polea)<span class="ex-hint">Cuerda o barra recta</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">10-12<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="2.5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="t-elevaciones-lat" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Elevaciones laterales<small>Mancuernas · control en bajada</small></div>
-            <button class="ex-yt" onclick="openYT('Elevaciones laterales','3VcKaXpzqRo')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">12-15</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">12-15</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="2">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="t-elevaciones-lat" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Lateral_raise.jpg/480px-Lateral_raise.jpg" data-img-hint="Mancuernas ligeras · elevar lateralmente hasta hombros · controlar la bajada">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=3VcKaXpzqRo" target="_blank">▶</a>
+          <div class="ex-name">Elevaciones laterales<span class="ex-hint">Mancuernas · control en bajada</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">12-15<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="2"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
       </div>
-
-      <div class="note-area">
-        <div class="note-label">Notas del día</div>
-        <textarea class="note-input" id="note-teen-lunes" placeholder="Sensaciones, ajustes, observaciones..."></textarea>
-        <button class="note-save" onclick="saveNote('teen','lunes')">Guardar nota</button>
-      </div>
+      <div class="note-area"><div class="note-label">Notas</div><textarea class="note-input" id="note-teen-lunes" placeholder="Técnica, sensaciones..."></textarea><button class="note-save" data-profile="teen" data-day="lunes">Guardar nota</button></div>
     </div>
 
-    <!-- MIÉRCOLES: TIRÓN + PIERNA -->
+    <!-- MIÉRCOLES TEEN -->
     <div class="day-panel" id="teen-miercoles">
       <div class="day-header"><div class="day-title blue">MIÉRCOLES</div><div class="day-subtitle">Tirón + Pierna · 60 min</div></div>
-
       <div class="block">
         <div class="block-header"><span class="block-tag compound">COMPUESTO</span><span class="block-name">Bloque principal</span></div>
-        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
-
-        <div class="exercise-row" data-ex="t-peso-muerto" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Peso muerto<small>Convencional · descanso 4 min</small></div>
-            <button class="ex-yt" onclick="openYT('Peso muerto convencional','op9kVnSso6Q')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">4</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">4</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">8</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">4</div>
-            <div class="ex-reps" style="display:none">4</div>
-            <div class="ex-rpe" style="display:none">8</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="ex-header"><span></span><span></span><span>Ejercicio</span><span>S</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+        <div class="exercise-row" data-ex="t-peso-muerto" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Deadlift_2.jpg/480px-Deadlift_2.jpg" data-img-hint="Técnica primero · espalda neutra · pesos ligeros al inicio · descanso 4 min">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=op9kVnSso6Q" target="_blank">▶</a>
+          <div class="ex-name">Peso muerto<span class="ex-hint">Convencional · técnica primero</span></div>
+          <div class="ex-stat">4<span>s</span></div><div class="ex-stat">4<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="t-dominadas" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Dominadas con lastre<small>Agarre prono · rango completo</small></div>
-            <button class="ex-yt" onclick="openYT('Dominadas con lastre','eGo4IYlbE5g')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">4</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">5</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">8</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">4</div>
-            <div class="ex-reps" style="display:none">5</div>
-            <div class="ex-rpe" style="display:none">8</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="2.5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="t-dominadas" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Pull_up_2.jpg/480px-Pull_up_2.jpg" data-img-hint="Agarre prono · usar goma si es necesario · progresar a libre">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=eGo4IYlbE5g" target="_blank">▶</a>
+          <div class="ex-name">Dominadas con lastre<span class="ex-hint">Agarre prono · rango completo</span></div>
+          <div class="ex-stat">4<span>s</span></div><div class="ex-stat">5<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="2.5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="t-sentadilla" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Sentadilla<small>Barra alta · descanso 3-4 min</small></div>
-            <button class="ex-yt" onclick="openYT('Sentadilla con barra','ultWZbUMPL8')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">5</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">8</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">5</div>
-            <div class="ex-rpe" style="display:none">8</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="t-sentadilla" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Squats.jpg/480px-Squats.jpg" data-img-hint="Barra alta · rodillas sobre pies · técnica perfecta antes de añadir peso">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=ultWZbUMPL8" target="_blank">▶</a>
+          <div class="ex-name">Sentadilla<span class="ex-hint">Barra alta · técnica primero</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">5<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
       </div>
-
       <div class="block">
         <div class="block-header"><span class="block-tag accessory">ACCESORIO</span><span class="block-name">Volumen de apoyo</span></div>
-        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
-
-        <div class="exercise-row" data-ex="t-remo-barra" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Remo Pendlay<small>Barra · espalda paralela al suelo</small></div>
-            <button class="ex-yt" onclick="openYT('Remo Pendlay','sSIekHmkDmo')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">6</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7-8</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">6</div>
-            <div class="ex-rpe" style="display:none">7-8</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="ex-header"><span></span><span></span><span>Ejercicio</span><span>S</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+        <div class="exercise-row" data-ex="t-remo-barra" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Bent_over_row.jpg/480px-Bent_over_row.jpg" data-img-hint="Torso paralelo al suelo · barra ligera · tirar hacia el abdomen">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=sSIekHmkDmo" target="_blank">▶</a>
+          <div class="ex-name">Remo Pendlay<span class="ex-hint">Barra · espalda paralela al suelo</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">6<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="t-curl-biceps" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Curl bíceps (barra)<small>Sin balanceo · codo fijo</small></div>
-            <button class="ex-yt" onclick="openYT('Curl bíceps con barra','kwG2ipFRgfo')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8-10</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">8-10</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="2.5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="t-curl-biceps" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Barbell_curl_2.jpg/480px-Barbell_curl_2.jpg" data-img-hint="Barra · codo fijo · sin balanceo · supinación completa">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=kwG2ipFRgfo" target="_blank">▶</a>
+          <div class="ex-name">Curl bíceps (barra)<span class="ex-hint">Sin balanceo · codo fijo</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">8-10<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="2.5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="t-prensa" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Prensa de pierna<small>Pies altos y separados</small></div>
-            <button class="ex-yt" onclick="openYT('Prensa de pierna','IZxyjW7MPJQ')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">8</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="10">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="t-prensa" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Leg_press_2.jpg/480px-Leg_press_2.jpg" data-img-hint="Pies altos y separados · rodillas alineadas con pies · rango completo">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=IZxyjW7MPJQ" target="_blank">▶</a>
+          <div class="ex-name">Prensa de pierna<span class="ex-hint">Pies altos y separados</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">8<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="10"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
       </div>
-
-      <div class="note-area">
-        <div class="note-label">Notas del día</div>
-        <textarea class="note-input" id="note-teen-miercoles" placeholder="Sensaciones, ajustes, observaciones..."></textarea>
-        <button class="note-save" onclick="saveNote('teen','miercoles')">Guardar nota</button>
-      </div>
+      <div class="note-area"><div class="note-label">Notas</div><textarea class="note-input" id="note-teen-miercoles" placeholder="Técnica, sensaciones..."></textarea><button class="note-save" data-profile="teen" data-day="miercoles">Guardar nota</button></div>
     </div>
 
-    <!-- VIERNES: FULL BODY -->
+    <!-- VIERNES TEEN -->
     <div class="day-panel" id="teen-viernes">
       <div class="day-header"><div class="day-title orange">VIERNES</div><div class="day-subtitle">Full body moderado · 60 min</div></div>
-
       <div class="block">
         <div class="block-header"><span class="block-tag compound">COMPUESTO</span><span class="block-name">Bloque principal</span></div>
-        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
-
-        <div class="exercise-row" data-ex="t-bulgara" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Sentadilla búlgara<small>Mancuernas · pie elevado</small></div>
-            <button class="ex-yt" onclick="openYT('Sentadilla búlgara','2C-uNgKwPLE')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">6</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">6</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="2">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="ex-header"><span></span><span></span><span>Ejercicio</span><span>S</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+        <div class="exercise-row" data-ex="t-bulgara" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Bulgarian_split_squat.jpg/480px-Bulgarian_split_squat.jpg" data-img-hint="Pie trasero elevado · mancuernas · bajar verticalmente">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=2C-uNgKwPLE" target="_blank">▶</a>
+          <div class="ex-name">Sentadilla búlgara<span class="ex-hint">Mancuernas · pie elevado</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">6<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="2"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="t-press-inclinado" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Press inclinado (mancuerna)<small>45° · rango completo</small></div>
-            <button class="ex-yt" onclick="openYT('Press inclinado mancuerna','8iPEnn-ltC8')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">8</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="2">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="t-press-inclinado" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Incline_dumbbell_press.jpg/480px-Incline_dumbbell_press.jpg" data-img-hint="Banco 30-45° · mancuernas · rango completo">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=8iPEnn-ltC8" target="_blank">▶</a>
+          <div class="ex-name">Press inclinado (mancuerna)<span class="ex-hint">45° · rango completo</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">8<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="2"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="t-remo-mancuerna" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Remo a una mano<small>Mancuerna · apoyo en banco</small></div>
-            <button class="ex-yt" onclick="openYT('Remo a una mano','pYcpY20QaE8')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">8</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">8</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="2">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="t-remo-mancuerna" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Dumbbell_row.jpg/480px-Dumbbell_row.jpg" data-img-hint="Apoyo en banco · mancuerna · tirar codo hacia atrás">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=pYcpY20QaE8" target="_blank">▶</a>
+          <div class="ex-name">Remo a una mano<span class="ex-hint">Mancuerna · apoyo en banco</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">8<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="2"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
       </div>
-
       <div class="block">
         <div class="block-header"><span class="block-tag accessory">ACCESORIO</span><span class="block-name">Complemento</span></div>
-        <div class="ex-header"><span></span><span>Ejercicio</span><span>Series</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
-
-        <div class="exercise-row" data-ex="t-hip-thrust" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Hip thrust (barra)<small>Hombros en banco · aprieta glúteo</small></div>
-            <button class="ex-yt" onclick="openYT('Hip thrust con barra','xDmFkJxPzeM')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">10</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">7</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">10</div>
-            <div class="ex-rpe" style="display:none">7</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="ex-header"><span></span><span></span><span>Ejercicio</span><span>S</span><span>Reps</span><span>RPE</span><span>Peso</span><span></span></div>
+        <div class="exercise-row" data-ex="t-hip-thrust" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Hip_thrust_2.jpg/480px-Hip_thrust_2.jpg" data-img-hint="Hombros sobre banco · peso corporal al inicio · luego barra ligera">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=xDmFkJxPzeM" target="_blank">▶</a>
+          <div class="ex-name">Hip thrust (barra)<span class="ex-hint">Hombros en banco · aprieta glúteo</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">10<span>r</span></div><div class="ex-stat ex-rpe-col">7<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
-
-        <div class="exercise-row" data-ex="t-face-pull" data-profile="teen">
-          <div class="ex-top">
-            <div class="ex-name">Face pull (polea)<small>Cuerda · polea alta · codos arriba</small></div>
-            <button class="ex-yt" onclick="openYT('Face pull en polea','rep-qVOkqgk')">▶</button>
-          </div>
-          <div class="ex-meta">
-            <div class="ex-badge"><div class="ex-badge-label">Series</div><div class="ex-badge-val">3</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">Reps</div><div class="ex-badge-val">15</div></div>
-            <div class="ex-badge"><div class="ex-badge-label">RPE</div><div class="ex-badge-val">6</div></div>
-            <!-- desktop only -->
-            <div class="ex-sets" style="display:none">3</div>
-            <div class="ex-reps" style="display:none">15</div>
-            <div class="ex-rpe" style="display:none">6</div>
-          </div>
-          <div class="ex-bottom">
-            <div class="weight-stepper">
-              <button class="step-btn" onclick="stepWeight(this,-1)" type="button">−</button>
-              <input type="number" class="weight-input teen-input" placeholder="—" step="2.5">
-              <span class="weight-unit-inline">kg</span>
-              <button class="step-btn" onclick="stepWeight(this,1)" type="button">+</button>
-            </div>
-            <button class="ex-save" onclick="saveWeight(this)">↑</button>
-          </div>
+        <div class="exercise-row" data-ex="t-face-pull" data-profile="teen" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Face_pull_exercise.jpg/480px-Face_pull_exercise.jpg" data-img-hint="Polea alta · cuerda · codos arriba · salud del hombro · imprescindible">
+          <button class="ex-img-btn">🖼</button>
+          <a class="ex-yt" href="https://www.youtube.com/watch?v=rep-qVOkqgk" target="_blank">▶</a>
+          <div class="ex-name">Face pull (polea)<span class="ex-hint">Cuerda · polea alta · codos arriba</span></div>
+          <div class="ex-stat">3<span>s</span></div><div class="ex-stat">15<span>r</span></div><div class="ex-stat ex-rpe-col">6<span>rpe</span></div>
+          <div class="ex-wt"><button class="sb" data-dir="-1">−</button><input type="number" class="weight-input teen-input" placeholder="—" step="2.5"><span class="kg-lbl">kg</span><button class="sb" data-dir="1">+</button></div>
+          <button class="ex-save">↑</button>
         </div>
       </div>
-
-      <div class="note-area">
-        <div class="note-label">Notas del día</div>
-        <textarea class="note-input" id="note-teen-viernes" placeholder="Sensaciones, ajustes, observaciones..."></textarea>
-        <button class="note-save" onclick="saveNote('teen','viernes')">Guardar nota</button>
-      </div>
+      <div class="note-area"><div class="note-label">Notas</div><textarea class="note-input" id="note-teen-viernes" placeholder="Técnica, sensaciones..."></textarea><button class="note-save" data-profile="teen" data-day="viernes">Guardar nota</button></div>
     </div>
 
   </main>
 </div>
 
-<!-- STATUS BAR -->
+<!-- STATUS -->
 <div id="status-bar">
-  <span id="status-msg">Introduce la contraseña para conectar</span>
-  <div class="status-right">
-    <span id="status-db">⚫ db</span>
-    <span id="status-time"></span>
-  </div>
+  <span id="status-msg">Toca ⚙ config para conectar Supabase</span>
+  <span id="status-time"></span>
 </div>
 
-<!-- BOTTOM NAV (adult) -->
-<div id="bottom-nav" data-current-profile="adult">
-  <button class="nav-btn active" data-day="lunes" onclick="navTo('lunes')">
-    <span class="nav-icon">💪</span>LUNES
-  </button>
+<!-- BOTTOM NAV -->
+<div id="bottom-nav" data-profile="adult">
+  <button class="nav-btn active" data-day="lunes"><span class="nav-icon">💪</span>LUNES</button>
   <div class="nav-divider"></div>
-  <button class="nav-btn" data-day="miercoles" onclick="navTo('miercoles')">
-    <span class="nav-icon">🏋️</span>MIÉRC.
-  </button>
+  <button class="nav-btn" data-day="miercoles"><span class="nav-icon">🏋️</span>MIÉRC.</button>
   <div class="nav-divider"></div>
-  <button class="nav-btn" data-day="viernes" onclick="navTo('viernes')">
-    <span class="nav-icon">🏊</span>VIERNES
-  </button>
+  <button class="nav-btn" data-day="viernes"><span class="nav-icon">🏊</span>VIERNES</button>
 </div>
 
 <script>
-let sb = null;
-
-// ─── ENCRYPTED CREDENTIALS (AES-256-GCM) ───
-const ENCRYPTED = {
-  salt: '7a45cfdad64a8c65f9f07b5b3ad810ab',
-  iv:   '84ee2a6e3833fad4bb032ed9',
-  tag:  '85951f48131de73bd6086aa87d9167f5',
-  data: '96c027692f59601589aec2a263293011bbc0d4ab0c4b706116dcdb9cdf73a5d078fb15f07a2c681266d2a600d4596beb4187e5cbd4f718fc0ba98ad12d84a9cd8d0310592a78f7da771c1836697747b06079b394e0d4f8ca73cc06b648111370eec2dcdf2ecf54457a'
+// ── ENCRYPTED CREDENTIALS (PBKDF2 + AES-256-GCM) ──
+const ENC = {
+  salt: '24c2d6cb62243fdb985808c97bf69c14',
+  iv:   '8dee50a5736f2fbd8499ed0b',
+  tag:  'd8c24bebbcedb7d79eb84aa207a79333',
+  data: '797ebf8a3b145d0f2a73f3dc526c64fa1a4f80a983a979774a0a4f6762f40d5f5c0ff39f6572c4c075276269c7098b55f276249f968129d344c040f17ba74fbf15dd5a45683f69054ad6d57b9cfd600aba40c613fbe47c18044690c0fc988ba209f1e12aa219a6e9d0'
 };
 
-function hex2buf(hex) {
-  return new Uint8Array(hex.match(/.{2}/g).map(b => parseInt(b, 16)));
-}
+let sb = null;
 
-async function deriveKey(password, salt) {
-  const enc = new TextEncoder();
-  const keyMat = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
-  return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
-    keyMat,
-    { name: 'AES-GCM', length: 256 },
-    false, ['decrypt']
-  );
-}
+function h2b(hex) { return new Uint8Array(hex.match(/.{2}/g).map(b => parseInt(b,16))); }
 
-async function decryptCredentials(password) {
+async function decrypt(pwd) {
   try {
-    const salt = hex2buf(ENCRYPTED.salt);
-    const iv   = hex2buf(ENCRYPTED.iv);
-    const tag  = hex2buf(ENCRYPTED.tag);
-    const data = hex2buf(ENCRYPTED.data);
-
-    // AES-GCM ciphertext = data + tag
-    const ciphertext = new Uint8Array(data.length + tag.length);
-    ciphertext.set(data); ciphertext.set(tag, data.length);
-
-    const key = await deriveKey(password, salt);
-    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
-    return JSON.parse(new TextDecoder().decode(decrypted));
-  } catch {
-    return null;
-  }
+    const enc = new TextEncoder();
+    const km = await crypto.subtle.importKey('raw', enc.encode(pwd), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey(
+      { name:'PBKDF2', salt:h2b(ENC.salt), iterations:100000, hash:'SHA-256' },
+      km, { name:'AES-GCM', length:256 }, false, ['decrypt']
+    );
+    const data = h2b(ENC.data), tag = h2b(ENC.tag);
+    const ct = new Uint8Array(data.length + tag.length);
+    ct.set(data); ct.set(tag, data.length);
+    const dec = await crypto.subtle.decrypt({ name:'AES-GCM', iv:h2b(ENC.iv) }, key, ct);
+    return JSON.parse(new TextDecoder().decode(dec));
+  } catch { return null; }
 }
 
-// ─── UNLOCK ───
-async function unlock() {
-  const pwd = document.getElementById('login-pwd').value;
-  const err = document.getElementById('login-err');
-  err.style.display = 'none';
-
-  const creds = await decryptCredentials(pwd);
-  if (!creds) {
-    err.style.display = 'block';
-    document.getElementById('login-pwd').value = '';
-    document.getElementById('login-pwd').focus();
-    return;
-  }
-
-  document.getElementById('login-overlay').style.display = 'none';
-  initSB(creds.url, creds.key);
+// ── SESSION ──
+async function tryAutoConnect() {
+  const saved = sessionStorage.getItem('gym_session');
+  if (!saved) return;
+  try {
+    const creds = JSON.parse(atob(saved));
+    if (creds.url && creds.key) initSB(creds.url, creds.key);
+  } catch { sessionStorage.removeItem('gym_session'); }
 }
 
-// ─── SUPABASE ───
+// ── SUPABASE ──
 function initSB(url, key) {
   try {
     sb = supabase.createClient(url, key);
-    document.getElementById('status-db').textContent = '🟢 db';
-    document.getElementById('header-status').textContent = '🔒 conectado';
-    setStatus('Conectado a Supabase', 'ok');
+    document.getElementById('db-dot').textContent = '🟢';
+    setStatus('Conectado · Supabase OK', 'ok');
     loadAllWeights();
-  } catch(e) { setStatus('Error: ' + e.message, 'err'); }
+  } catch(e) { setStatus('Error conexión: ' + e.message, 'err'); }
 }
 
-// ─── STATUS ───
-function setStatus(msg, type = '') {
+// ── CFG MODAL ──
+const cfgOverlay = document.getElementById('cfg-overlay');
+const cfgPwd = document.getElementById('cfg-pwd');
+const cfgErr = document.getElementById('cfg-err');
+
+document.getElementById('cfg-open-btn').onclick = () => {
+  cfgErr.style.display = 'none';
+  cfgPwd.value = '';
+  cfgOverlay.classList.add('open');
+  setTimeout(() => cfgPwd.focus(), 100);
+};
+document.getElementById('cfg-cancel-btn').onclick = () => cfgOverlay.classList.remove('open');
+document.getElementById('cfg-submit').onclick = cfgSave;
+cfgPwd.addEventListener('keydown', e => { if (e.key === 'Enter') cfgSave(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cfgOverlay.classList.remove('open'); });
+
+async function cfgSave() {
+  cfgErr.style.display = 'none';
+  const creds = await decrypt(cfgPwd.value);
+  if (!creds) { cfgErr.style.display = 'block'; return; }
+  sessionStorage.setItem('gym_session', btoa(JSON.stringify(creds)));
+  cfgOverlay.classList.remove('open');
+  initSB(creds.url, creds.key);
+}
+
+// ── EXERCISE DATA ──
+const EX_DATA = {
+  'press-banca': {
+    svg: `<svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Bench --><rect x="70" y="120" width="180" height="16" rx="4" fill="#2a2a2a" stroke="#444" stroke-width="1"/>
+      <rect x="85" y="136" width="20" height="26" rx="2" fill="#222" stroke="#444" stroke-width="1"/>
+      <rect x="215" y="136" width="20" height="26" rx="2" fill="#222" stroke="#444" stroke-width="1"/>
+      <!-- Barbell --><rect x="20" y="58" width="280" height="10" rx="4" fill="#555" stroke="#666" stroke-width="1"/>
+      <rect x="10" y="46" width="35" height="34" rx="5" fill="#3a3a3a" stroke="#666" stroke-width="1.5"/>
+      <rect x="275" y="46" width="35" height="34" rx="5" fill="#3a3a3a" stroke="#666" stroke-width="1.5"/>
+      <!-- Body lying --><ellipse cx="160" cy="112" rx="42" ry="14" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5"/>
+      <!-- Left arm --><line x1="118" y1="105" x2="75" y2="63" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <!-- Right arm --><line x1="202" y1="105" x2="245" y2="63" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <!-- Head --><circle cx="160" cy="96" r="13" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <!-- Feet --><ellipse cx="105" cy="158" rx="12" ry="7" fill="#2a2a2a" stroke="#555" stroke-width="1"/>
+      <ellipse cx="215" cy="158" rx="12" ry="7" fill="#2a2a2a" stroke="#555" stroke-width="1"/>
+      <text x="160" y="175" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">PRESS BANCA</text>
+    </svg>`,
+    primary: ['Pectoral mayor'], secondary: ['Tríceps', 'Deltoides anterior'],
+    steps: ['Túmbate, ojos bajo la barra. Pies planos en el suelo.','Agarre prono, ligeramente más ancho que hombros.','Baja la barra controlado hasta rozar el pecho.','Empuja explosivamente hasta extensión completa.','Escápulas retraídas y apretadas durante todo el movimiento.']
+  },
+  'press-militar': {
+    svg: `<svg viewBox="0 0 320 190" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Barbell overhead --><rect x="20" y="38" width="280" height="10" rx="4" fill="#555" stroke="#666" stroke-width="1"/>
+      <rect x="10" y="26" width="32" height="34" rx="5" fill="#3a3a3a" stroke="#666" stroke-width="1.5"/>
+      <rect x="278" y="26" width="32" height="34" rx="5" fill="#3a3a3a" stroke="#666" stroke-width="1.5"/>
+      <!-- Body standing --><ellipse cx="160" cy="125" rx="22" ry="38" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5"/>
+      <!-- Arms up --><line x1="138" y1="100" x2="82" y2="43" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <line x1="182" y1="100" x2="238" y2="43" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <!-- Head --><circle cx="160" cy="88" r="13" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <!-- Legs --><line x1="148" y1="162" x2="135" y2="188" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <line x1="172" y1="162" x2="185" y2="188" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <text x="160" y="205" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">PRESS MILITAR</text>
+    </svg>`,
+    primary: ['Deltoides anterior y medio'], secondary: ['Tríceps', 'Trapecio superior'],
+    steps: ['De pie, pies al ancho de hombros. Barra a la altura de la clavícula.','Agarre prono ligeramente más ancho que hombros.','Empuja la barra verticalmente sobre la cabeza hasta bloqueo.','Baja controlado hasta clavícula sin rebotar.','Core apretado — no hiperlordosis lumbar.']
+  },
+  'fondos-lastre': {
+    svg: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Dip bars --><rect x="80" y="50" width="12" height="140" rx="4" fill="#3a3a3a" stroke="#555" stroke-width="1"/>
+      <rect x="228" y="50" width="12" height="140" rx="4" fill="#3a3a3a" stroke="#555" stroke-width="1"/>
+      <rect x="55" y="58" width="62" height="12" rx="4" fill="#555" stroke="#666" stroke-width="1"/>
+      <rect x="203" y="58" width="62" height="12" rx="4" fill="#555" stroke="#666" stroke-width="1"/>
+      <!-- Body --><ellipse cx="160" cy="115" rx="22" ry="36" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5"/>
+      <!-- Arms --><line x1="138" y1="95" x2="86" y2="70" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <line x1="182" y1="95" x2="234" y2="70" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <!-- Head --><circle cx="160" cy="80" r="13" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <!-- Legs hanging --><line x1="150" y1="150" x2="142" y2="180" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <line x1="170" y1="150" x2="178" y2="180" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <!-- Weight plate --><ellipse cx="160" cy="175" rx="14" ry="8" fill="#3a3a3a" stroke="#c8f400" stroke-width="1"/>
+      <text x="160" y="200" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">FONDOS CON LASTRE</text>
+    </svg>`,
+    primary: ['Pectoral inferior', 'Tríceps'], secondary: ['Deltoides anterior', 'Serrato'],
+    steps: ['Agarra las paralelas, elévate al punto de partida con brazos extendidos.','Inclina el torso ligeramente hacia adelante para mayor activación pectoral.','Baja controlado hasta que los codos formen ~90°.','Empuja hacia arriba hasta extensión completa.','Lastre con cinturón — empieza con poco peso hasta dominar la técnica.']
+  },
+  'aperturas': {
+    svg: `<svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Bench --><rect x="70" y="118" width="180" height="14" rx="4" fill="#2a2a2a" stroke="#444" stroke-width="1"/>
+      <!-- Body --><ellipse cx="160" cy="108" rx="40" ry="14" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5"/>
+      <!-- Arms open wide --><line x1="120" y1="105" x2="48" y2="98" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <line x1="200" y1="105" x2="272" y2="98" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <!-- Dumbbells --><rect x="28" y="92" width="24" height="12" rx="3" fill="#555" stroke="#777" stroke-width="1"/>
+      <rect x="268" y="92" width="24" height="12" rx="3" fill="#555" stroke="#777" stroke-width="1"/>
+      <!-- Head --><circle cx="160" cy="92" r="13" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <!-- Arc guide lines --><path d="M 120,105 Q 84,72 72,62" stroke="#c8f400" stroke-width="1" fill="none" stroke-dasharray="4,4" opacity="0.4"/>
+      <path d="M 200,105 Q 236,72 248,62" stroke="#c8f400" stroke-width="1" fill="none" stroke-dasharray="4,4" opacity="0.4"/>
+      <text x="160" y="172" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">APERTURAS</text>
+    </svg>`,
+    primary: ['Pectoral mayor (fibras medias)'], secondary: ['Deltoides anterior', 'Bíceps (cabeza larga)'],
+    steps: ['Túmbate en banco plano, mancuernas sobre el pecho, palmas enfrentadas.','Codos ligeramente flexionados — mantén ese ángulo durante todo el movimiento.','Abre los brazos lateralmente hasta sentir el estiramiento en el pecho.','Cierra contrayendo el pecho como si abrazaras un árbol.','No dejes los codos bajar por debajo del plano del banco.']
+  },
+  'extension-triceps': {
+    svg: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Pulley cable --><rect x="170" y="10" width="10" height="110" rx="3" fill="#3a3a3a" stroke="#555" stroke-width="1"/>
+      <circle cx="175" cy="118" r="10" fill="#555" stroke="#666" stroke-width="1.5"/>
+      <!-- Rope --><line x1="165" y1="118" x2="148" y2="145" stroke="#888" stroke-width="3" stroke-dasharray="5,3"/>
+      <line x1="185" y1="118" x2="148" y2="145" stroke="#888" stroke-width="3" stroke-dasharray="5,3"/>
+      <!-- Body --><ellipse cx="115" cy="130" rx="20" ry="32" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5"/>
+      <!-- Upper arm (fixed) --><line x1="120" y1="108" x2="140" y2="90" stroke="#888" stroke-width="5" stroke-linecap="round"/>
+      <!-- Lower arm (extended) --><line x1="140" y1="90" x2="148" y2="145" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <!-- Head --><circle cx="115" cy="100" r="12" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <!-- Legs --><line x1="106" y1="160" x2="98" y2="188" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <line x1="124" y1="160" x2="132" y2="188" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <text x="160" y="200" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">EXTENSIÓN TRÍCEPS</text>
+    </svg>`,
+    primary: ['Tríceps braquial (3 cabezas)'], secondary: ['Anconeo'],
+    steps: ['De pie frente a la polea alta, agarra la cuerda con ambas manos.','Codos pegados al cuerpo — no los muevas durante el ejercicio.','Extiende los codos hacia abajo hasta bloqueo completo.','Vuelve controlado sin que los codos suban por encima de los hombros.','Separa los extremos de la cuerda al final para mayor contracción.']
+  },
+  'elevaciones-lat': {
+    svg: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Body --><ellipse cx="160" cy="120" rx="20" ry="35" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5"/>
+      <!-- Arms elevated to shoulder height --><line x1="140" y1="105" x2="52" y2="100" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <line x1="180" y1="105" x2="268" y2="100" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <!-- Dumbbells --><rect x="32" y="93" width="24" height="12" rx="3" fill="#555" stroke="#777" stroke-width="1"/>
+      <rect x="264" y="93" width="24" height="12" rx="3" fill="#555" stroke="#777" stroke-width="1"/>
+      <!-- Head --><circle cx="160" cy="86" r="13" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <!-- Legs --><line x1="149" y1="154" x2="140" y2="182" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <line x1="171" y1="154" x2="180" y2="182" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <!-- Start position arms (faded) --><line x1="140" y1="120" x2="105" y2="125" stroke="#c8f400" stroke-width="3" opacity="0.25" stroke-linecap="round"/>
+      <line x1="180" y1="120" x2="215" y2="125" stroke="#c8f400" stroke-width="3" opacity="0.25" stroke-linecap="round"/>
+      <text x="160" y="198" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">ELEVACIONES LAT.</text>
+    </svg>`,
+    primary: ['Deltoides medio (cabeza lateral)'], secondary: ['Deltoides anterior', 'Trapecio superior'],
+    steps: ['De pie, mancuernas a los lados del cuerpo, codos ligeramente flexionados.','Eleva los brazos lateralmente hasta la altura de los hombros.','Muñecas neutras o ligeramente pronadas (el meñique sube primero).','Baja MUY controlado — la fase excéntrica es clave para crecer.','Evita el balanceo del torso y usar inercia — reduce el peso si es necesario.']
+  },
+  'peso-muerto': {
+    svg: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Floor --><line x1="20" y1="168" x2="300" y2="168" stroke="#333" stroke-width="2"/>
+      <!-- Barbell --><rect x="35" y="145" width="250" height="10" rx="3" fill="#555" stroke="#666" stroke-width="1"/>
+      <rect x="20" y="130" width="32" height="40" rx="5" fill="#3a3a3a" stroke="#666" stroke-width="1.5"/>
+      <rect x="268" y="130" width="32" height="40" rx="5" fill="#3a3a3a" stroke="#666" stroke-width="1.5"/>
+      <!-- Body hinging --><ellipse cx="155" cy="100" rx="28" ry="18" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5" transform="rotate(-35 155 100)"/>
+      <!-- Arms down to bar --><line x1="140" y1="112" x2="115" y2="150" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <line x1="170" y1="112" x2="195" y2="150" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <!-- Head --><circle cx="185" cy="72" r="13" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <!-- Legs --><line x1="140" y1="115" x2="120" y2="168" stroke="#888" stroke-width="7" stroke-linecap="round"/>
+      <line x1="170" y1="115" x2="190" y2="168" stroke="#888" stroke-width="7" stroke-linecap="round"/>
+      <text x="160" y="190" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">PESO MUERTO</text>
+    </svg>`,
+    primary: ['Isquiotibiales', 'Glúteo mayor', 'Erector espinal'], secondary: ['Cuádriceps', 'Trapecio', 'Dorsales'],
+    steps: ['Barra sobre el medio del pie. Agarre prono al ancho de caderas.','Dobla caderas y rodillas para agarrar la barra. Espalda NEUTRA.','Pecho arriba, hombros ligeramente delante de la barra.','Empuja el suelo con los pies — caderas y hombros suben al mismo ritmo.','Bloquea en la cima apretando glúteos. Baja controlado.']
+  },
+  'dominadas': {
+    svg: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Pull-up bar --><rect x="40" y="28" width="240" height="12" rx="5" fill="#555" stroke="#666" stroke-width="1"/>
+      <rect x="38" y="10" width="14" height="30" rx="3" fill="#3a3a3a" stroke="#555" stroke-width="1"/>
+      <rect x="268" y="10" width="14" height="30" rx="3" fill="#3a3a3a" stroke="#555" stroke-width="1"/>
+      <!-- Body --><ellipse cx="160" cy="115" rx="22" ry="36" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5"/>
+      <!-- Arms up to bar --><line x1="138" y1="88" x2="100" y2="40" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <line x1="182" y1="88" x2="220" y2="40" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <!-- Head (chin above bar) --><circle cx="160" cy="62" r="13" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <!-- Legs --><line x1="150" y1="150" x2="140" y2="182" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <line x1="170" y1="150" x2="180" y2="182" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <text x="160" y="200" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">DOMINADAS</text>
+    </svg>`,
+    primary: ['Dorsal ancho', 'Bíceps braquial'], secondary: ['Romboides', 'Trapecio inferior', 'Redondo mayor'],
+    steps: ['Agarre prono ligeramente más ancho que hombros. Cuelga con brazos extendidos.','Activa los hombros (escápulas hacia abajo y adentro) antes de tirar.','Tira de los codos hacia abajo y atrás hasta que la barbilla supere la barra.','Baja controlado hasta extensión completa — sin soltar.','Lastre: cinturón. Empieza ligero para mantener la técnica.']
+  },
+  'sentadilla': {
+    svg: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Barbell on back --><rect x="30" y="75" width="260" height="10" rx="3" fill="#555" stroke="#666" stroke-width="1"/>
+      <rect x="18" y="62" width="30" height="34" rx="5" fill="#3a3a3a" stroke="#666" stroke-width="1.5"/>
+      <rect x="272" y="62" width="30" height="34" rx="5" fill="#3a3a3a" stroke="#666" stroke-width="1.5"/>
+      <!-- Torso --><ellipse cx="160" cy="85" rx="28" ry="18" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5"/>
+      <!-- Arms on bar --><line x1="132" y1="80" x2="90" y2="80" stroke="#c8f400" stroke-width="4" stroke-linecap="round"/>
+      <line x1="188" y1="80" x2="230" y2="80" stroke="#c8f400" stroke-width="4" stroke-linecap="round"/>
+      <!-- Head --><circle cx="160" cy="62" r="13" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <!-- Thighs (parallel) --><line x1="145" y1="103" x2="108" y2="140" stroke="#c8f400" stroke-width="7" stroke-linecap="round"/>
+      <line x1="175" y1="103" x2="212" y2="140" stroke="#c8f400" stroke-width="7" stroke-linecap="round"/>
+      <!-- Lower legs --><line x1="108" y1="140" x2="100" y2="182" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <line x1="212" y1="140" x2="220" y2="182" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <!-- Feet --><line x1="88" y1="182" x2="112" y2="182" stroke="#888" stroke-width="5" stroke-linecap="round"/>
+      <line x1="208" y1="182" x2="232" y2="182" stroke="#888" stroke-width="5" stroke-linecap="round"/>
+      <text x="160" y="200" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">SENTADILLA</text>
+    </svg>`,
+    primary: ['Cuádriceps', 'Glúteo mayor'], secondary: ['Isquiotibiales', 'Aductores', 'Erector espinal'],
+    steps: ['Barra alta en los trapecios. Pies al ancho de hombros, puntas ligeramente abiertas.','Respira hondo, bracing de core, inicia bajando las caderas.','Rodillas siguen la dirección de los pies — no colapsen hacia adentro.','Baja hasta paralelo o más — talones siempre en el suelo.','Empuja el suelo, sube manteniendo espalda neutra.']
+  },
+  'remo-barra': {
+    svg: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Barbell --><rect x="30" y="138" width="260" height="10" rx="3" fill="#555" stroke="#666" stroke-width="1"/>
+      <rect x="18" y="125" width="28" height="35" rx="5" fill="#3a3a3a" stroke="#666" stroke-width="1.5"/>
+      <rect x="274" y="125" width="28" height="35" rx="5" fill="#3a3a3a" stroke="#666" stroke-width="1.5"/>
+      <!-- Body hinged --><ellipse cx="155" cy="95" rx="32" ry="15" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5" transform="rotate(-5 155 95)"/>
+      <!-- Arms pulling bar to abdomen --><line x1="130" y1="105" x2="105" y2="143" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <line x1="180" y1="105" x2="205" y2="143" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <!-- Head --><circle cx="190" cy="72" r="13" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <!-- Legs --><line x1="138" y1="110" x2="118" y2="175" stroke="#888" stroke-width="7" stroke-linecap="round"/>
+      <line x1="172" y1="110" x2="192" y2="175" stroke="#888" stroke-width="7" stroke-linecap="round"/>
+      <!-- Parallel indicator --><line x1="50" y1="95" x2="50" y2="175" stroke="#444" stroke-width="1" stroke-dasharray="4,4"/>
+      <line x1="50" y1="95" x2="200" y2="95" stroke="#444" stroke-width="1" stroke-dasharray="4,4"/>
+      <text x="160" y="196" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">REMO PENDLAY</text>
+    </svg>`,
+    primary: ['Dorsal ancho', 'Romboides', 'Trapecio medio'], secondary: ['Bíceps', 'Deltoides posterior'],
+    steps: ['Torso PARALELO al suelo. Rodillas ligeramente flexionadas.','Agarre prono, ancho de hombros. La barra empieza en el suelo (Pendlay).','Tira de la barra hacia el abdomen — codos cerca del cuerpo.','Baja la barra al suelo completamente entre cada repetición.','Espalda plana durante todo el movimiento — no redondees la lumbar.']
+  },
+  'curl-biceps': {
+    svg: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Body --><ellipse cx="160" cy="120" rx="20" ry="35" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5"/>
+      <!-- Barbell --><rect x="88" y="152" width="144" height="9" rx="3" fill="#555" stroke="#666" stroke-width="1"/>
+      <!-- Upper arms (fixed to body) --><line x1="140" y1="105" x2="105" y2="115" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <line x1="180" y1="105" x2="215" y2="115" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <!-- Forearms curled --><line x1="105" y1="115" x2="96" y2="157" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <line x1="215" y1="115" x2="224" y2="157" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <!-- Head --><circle cx="160" cy="86" r="13" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <!-- Legs --><line x1="150" y1="154" x2="140" y2="185" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <line x1="170" y1="154" x2="180" y2="185" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <text x="160" y="200" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">CURL BÍCEPS</text>
+    </svg>`,
+    primary: ['Bíceps braquial', 'Braquial anterior'], secondary: ['Braquiorradial'],
+    steps: ['De pie, barra con agarre supino al ancho de caderas.','CODOS PEGADOS AL CUERPO durante todo el movimiento.','Flexiona subiendo la barra hasta los hombros contrayendo el bíceps.','Baja MUY controlado — la fase excéntrica construye músculo.','Sin balanceo de torso ni llevar codos hacia adelante.']
+  },
+  'prensa': {
+    svg: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Machine frame --><rect x="30" y="30" width="10" height="150" rx="3" fill="#3a3a3a" stroke="#555" stroke-width="1"/>
+      <rect x="280" y="30" width="10" height="150" rx="3" fill="#3a3a3a" stroke="#555" stroke-width="1"/>
+      <!-- Platform --><rect x="100" y="60" width="120" height="16" rx="4" fill="#555" stroke="#666" stroke-width="1.5"/>
+      <!-- Body reclined --><ellipse cx="160" cy="140" rx="40" ry="16" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5"/>
+      <!-- Legs pushing platform --><line x1="140" y1="130" x2="118" y2="76" stroke="#c8f400" stroke-width="7" stroke-linecap="round"/>
+      <line x1="180" y1="130" x2="202" y2="76" stroke="#c8f400" stroke-width="7" stroke-linecap="round"/>
+      <!-- Head (reclined) --><circle cx="160" cy="155" r="12" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <!-- Seat back --><rect x="60" y="120" width="10" height="50" rx="3" fill="#2a2a2a" stroke="#444" stroke-width="1"/>
+      <text x="160" y="192" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">PRENSA DE PIERNA</text>
+    </svg>`,
+    primary: ['Cuádriceps'], secondary: ['Glúteo mayor', 'Isquiotibiales'],
+    steps: ['Siéntate con la espalda bien apoyada. Pies en la plataforma, altos y separados.','Rodillas alineadas con los pies — no colapsen hacia adentro.','Baja la plataforma hasta que las rodillas formen 90° o menos.','Empuja hasta casi extensión — NO bloquees las rodillas.','Respira: inhala al bajar, exhala al empujar.']
+  },
+  'bulgara': {
+    svg: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Rear bench --><rect x="195" y="130" width="95" height="14" rx="4" fill="#2a2a2a" stroke="#444" stroke-width="1"/>
+      <rect x="205" y="144" width="14" height="30" rx="2" fill="#222" stroke="#444" stroke-width="1"/>
+      <rect x="270" y="144" width="14" height="30" rx="2" fill="#222" stroke="#444" stroke-width="1"/>
+      <!-- Body (torso upright) --><ellipse cx="140" cy="95" rx="22" ry="38" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5"/>
+      <!-- Head --><circle cx="140" cy="58" r="13" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <!-- Front leg (working) --><line x1="130" y1="132" x2="108" y2="175" stroke="#c8f400" stroke-width="7" stroke-linecap="round"/>
+      <!-- Rear leg (elevated) --><line x1="150" y1="132" x2="200" y2="130" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <!-- Front foot --><line x1="95" y1="175" x2="122" y2="175" stroke="#888" stroke-width="5" stroke-linecap="round"/>
+      <!-- Dumbbells --><rect x="55" y="120" width="22" height="10" rx="3" fill="#555" stroke="#777" stroke-width="1"/>
+      <rect x="175" y="120" width="22" height="10" rx="3" fill="#555" stroke="#777" stroke-width="1"/>
+      <line x1="120" y1="125" x2="64" y2="125" stroke="#c8f400" stroke-width="4" stroke-linecap="round"/>
+      <line x1="160" y1="125" x2="178" y2="125" stroke="#c8f400" stroke-width="4" stroke-linecap="round"/>
+      <text x="160" y="198" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">SENTADILLA BÚLGARA</text>
+    </svg>`,
+    primary: ['Cuádriceps', 'Glúteo mayor'], secondary: ['Isquiotibiales', 'Core (estabilización)'],
+    steps: ['Pie trasero elevado en el banco, pie delantero adelantado (~70cm).','Mancuernas a los lados del cuerpo con los brazos extendidos.','Baja verticalmente hasta que la rodilla trasera casi toque el suelo.','Rodilla delantera NO supera demasiado la punta del pie.','Empuja a través del talón delantero para subir.']
+  },
+  'press-inclinado': {
+    svg: `<svg viewBox="0 0 320 190" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Incline bench --><rect x="60" y="155" width="200" height="12" rx="4" fill="#2a2a2a" stroke="#444" stroke-width="1" transform="rotate(-30 160 155)"/>
+      <!-- Dumbbells --><rect x="50" y="62" width="26" height="11" rx="3" fill="#555" stroke="#777" stroke-width="1"/>
+      <rect x="244" y="62" width="26" height="11" rx="3" fill="#555" stroke="#777" stroke-width="1"/>
+      <!-- Body inclined --><ellipse cx="160" cy="110" rx="38" ry="16" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5" transform="rotate(-30 160 110)"/>
+      <!-- Arms pressing --><line x1="130" y1="98" x2="76" y2="67" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <line x1="190" y1="98" x2="244" y2="67" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <!-- Head --><circle cx="195" cy="80" r="13" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <text x="160" y="185" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">PRESS INCLINADO</text>
+    </svg>`,
+    primary: ['Pectoral mayor (porción clavicular/superior)'], secondary: ['Deltoides anterior', 'Tríceps'],
+    steps: ['Banco a 30-45°. Mancuernas sobre los hombros, codos a ~70°.','Empuja hacia arriba y ligeramente hacia adentro.','No juntes completamente las mancuernas en la cima.','Baja controlado hasta sentir estiramiento en la parte superior del pecho.','Espalda siempre apoyada al banco.']
+  },
+  'remo-mancuerna': {
+    svg: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Support bench --><rect x="30" y="110" width="90" height="14" rx="4" fill="#2a2a2a" stroke="#444" stroke-width="1"/>
+      <rect x="40" y="124" width="14" height="40" rx="2" fill="#222" stroke="#444" stroke-width="1"/>
+      <!-- Support arm on bench --><line x1="72" y1="110" x2="72" y2="70" stroke="#888" stroke-width="5" stroke-linecap="round"/>
+      <!-- Body hinged --><ellipse cx="155" cy="90" rx="32" ry="14" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5" transform="rotate(-8 155 90)"/>
+      <!-- Working arm pulling up --><line x1="140" y1="96" x2="148" y2="55" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <!-- Dumbbell --><rect x="136" y="45" width="26" height="11" rx="3" fill="#555" stroke="#777" stroke-width="1"/>
+      <!-- Head --><circle cx="185" cy="68" r="12" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <!-- Support leg --><line x1="132" y1="104" x2="115" y2="160" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <!-- Working leg --><line x1="178" y1="104" x2="195" y2="160" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <!-- Elbow arrow --><line x1="148" y1="55" x2="148" y2="35" stroke="#c8f400" stroke-width="2" stroke-dasharray="4,3" opacity="0.6"/>
+      <text x="160" y="192" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">REMO UNA MANO</text>
+    </svg>`,
+    primary: ['Dorsal ancho', 'Romboides'], secondary: ['Bíceps', 'Deltoides posterior'],
+    steps: ['Mano y rodilla del mismo lado apoyadas en el banco. Torso paralelo.','Mancuerna colgando con el brazo extendido.','Tira el codo hacia arriba y atrás — piensa en "meter el codo en el bolsillo".','Baja controlado hasta extensión completa del brazo.','No rotar el torso — el movimiento es solo del brazo y la espalda.']
+  },
+  'hip-thrust': {
+    svg: `<svg viewBox="0 0 320 190" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Bench --><rect x="30" y="85" width="100" height="16" rx="4" fill="#2a2a2a" stroke="#444" stroke-width="1"/>
+      <rect x="40" y="101" width="14" height="30" rx="2" fill="#222" stroke="#444" stroke-width="1"/>
+      <rect x="102" y="101" width="14" height="30" rx="2" fill="#222" stroke="#444" stroke-width="1"/>
+      <!-- Barbell --><rect x="60" y="90" width="200" height="10" rx="3" fill="#555" stroke="#666" stroke-width="1"/>
+      <rect x="48" y="78" width="28" height="34" rx="5" fill="#3a3a3a" stroke="#666" stroke-width="1.5"/>
+      <rect x="244" y="78" width="28" height="34" rx="5" fill="#3a3a3a" stroke="#666" stroke-width="1.5"/>
+      <!-- Torso on bench --><ellipse cx="100" cy="90" rx="38" ry="12" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5"/>
+      <!-- Head on bench --><circle cx="58" cy="82" r="12" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <!-- Hips raised --><line x1="138" y1="90" x2="162" y2="110" stroke="#c8f400" stroke-width="6" stroke-linecap="round"/>
+      <!-- Lower legs --><line x1="162" y1="110" x2="172" y2="165" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <line x1="138" y1="90" x2="125" y2="150" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <!-- Feet --><line x1="158" y1="165" x2="188" y2="165" stroke="#888" stroke-width="5" stroke-linecap="round"/>
+      <line x1="112" y1="150" x2="140" y2="150" stroke="#888" stroke-width="5" stroke-linecap="round"/>
+      <!-- Hip apex indicator --><circle cx="160" cy="95" r="6" fill="#c8f400" opacity="0.5"/>
+      <text x="160" y="185" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">HIP THRUST</text>
+    </svg>`,
+    primary: ['Glúteo mayor'], secondary: ['Isquiotibiales', 'Erector espinal'],
+    steps: ['Hombros sobre el banco. Barra en la cadera con almohadilla protectora.','Pies al ancho de caderas, rodillas a 90° cuando llegues arriba.','Empuja las caderas hacia arriba APRETANDO el glúteo al máximo.','Barbilla metida y espalda neutra — no hiperlordosis lumbar.','Baja controlado sin que el glúteo toque el suelo entre repeticiones.']
+  },
+  'face-pull': {
+    svg: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" style="background:#0d0d0d;width:100%;display:block">
+      <!-- Pulley tower --><rect x="255" y="20" width="12" height="160" rx="4" fill="#3a3a3a" stroke="#555" stroke-width="1"/>
+      <!-- Pulley wheel --><circle cx="261" cy="65" r="10" fill="#555" stroke="#666" stroke-width="1.5"/>
+      <!-- Rope from pulley --><line x1="255" y1="65" x2="195" y2="85" stroke="#888" stroke-width="3" stroke-dasharray="5,3"/>
+      <line x1="267" y1="65" x2="195" y2="85" stroke="#888" stroke-width="3" stroke-dasharray="5,3"/>
+      <!-- Rope ends (elbows high) --><line x1="195" y1="85" x2="155" y2="70" stroke="#c8f400" stroke-width="3"/>
+      <line x1="195" y1="85" x2="155" y2="105" stroke="#c8f400" stroke-width="3"/>
+      <!-- Body --><ellipse cx="110" cy="115" rx="20" ry="34" fill="#1a2e00" stroke="#c8f400" stroke-width="1.5"/>
+      <!-- Arms (elbows up, pulling to face) --><line x1="128" y1="100" x2="155" y2="70" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <line x1="128" y1="130" x2="155" y2="105" stroke="#c8f400" stroke-width="5" stroke-linecap="round"/>
+      <!-- Head --><circle cx="110" cy="82" r="13" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+      <!-- Legs --><line x1="100" y1="148" x2="90" y2="182" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <line x1="120" y1="148" x2="130" y2="182" stroke="#888" stroke-width="6" stroke-linecap="round"/>
+      <!-- Elbow labels --><text x="160" y="62" fill="#c8f400" font-size="9" font-family="monospace" opacity="0.7">codo↑</text>
+      <text x="160" y="115" fill="#c8f400" font-size="9" font-family="monospace" opacity="0.7">codo↑</text>
+      <text x="160" y="192" text-anchor="middle" fill="#555" font-size="11" font-family="monospace" letter-spacing="2">FACE PULL</text>
+    </svg>`,
+    primary: ['Deltoides posterior', 'Rotadores externos (manguito)'], secondary: ['Trapecio medio', 'Romboides'],
+    steps: ['Polea alta con cuerda. Agarra los extremos de la cuerda.','CODOS POR ENCIMA de los hombros durante todo el movimiento.','Tira hacia la cara separando los extremos de la cuerda al llegar.','Rota externamente los hombros en la posición final.','Ejercicio clave para la salud del hombro — hazlo siempre.']
+  }
+};
+
+function getExData(exId) {
+  const key = exId.replace(/^[at]-/, '');
+  return EX_DATA[key] || null;
+}
+
+// ── INFO MODAL ──
+const infoOverlay = document.getElementById('info-overlay');
+document.getElementById('info-close-btn').onclick = () => infoOverlay.classList.remove('open');
+infoOverlay.addEventListener('click', e => { if (e.target === infoOverlay) infoOverlay.classList.remove('open'); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') infoOverlay.classList.remove('open'); });
+
+document.querySelectorAll('.ex-img-btn').forEach(btn => {
+  btn.onclick = () => {
+    const row = btn.closest('.exercise-row');
+    const name = row.querySelector('.ex-name').firstChild.textContent.trim();
+    const exId = row.dataset.ex;
+    const info = getExData(exId);
+    document.getElementById('info-modal-title').textContent = name.toUpperCase();
+    const imgWrap = document.getElementById('info-img-wrap');
+    imgWrap.innerHTML = info ? info.svg : '<div style="padding:30px;color:#555;font-size:0.7rem;text-align:center">Sin ilustración disponible</div>';
+    const musclesEl = document.getElementById('info-muscles');
+    musclesEl.innerHTML = '';
+    if (info) {
+      info.primary.forEach(m => { const s=document.createElement('span'); s.className='info-muscle primary'; s.textContent=m; musclesEl.appendChild(s); });
+      info.secondary.forEach(m => { const s=document.createElement('span'); s.className='info-muscle secondary'; s.textContent=m; musclesEl.appendChild(s); });
+    }
+    const stepsEl = document.getElementById('info-steps');
+    stepsEl.innerHTML = '';
+    if (info) {
+      info.steps.forEach((step, i) => { const li=document.createElement('li'); li.dataset.n=i+1+'.'; li.textContent=step; stepsEl.appendChild(li); });
+    }
+    infoOverlay.classList.add('open');
+  };
+});
+
+// ── STATUS ──
+function setStatus(msg, type) {
   const el = document.getElementById('status-msg');
-  el.textContent = msg; el.className = type;
+  el.textContent = msg; el.className = type || '';
   if (type === 'ok') setTimeout(() => { el.textContent = 'Listo'; el.className = ''; }, 3000);
 }
 setInterval(() => {
   const d = new Date();
   document.getElementById('status-time').textContent =
-    d.toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' }) +
-    ' · ' + d.toTimeString().slice(0,5);
+    d.toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'}) + ' · ' + d.toTimeString().slice(0,5);
 }, 1000);
 
-// ─── WEIGHT STEPPER ───
-function stepWeight(btn, dir) {
-  const row = btn.closest('.exercise-row');
-  const input = row.querySelector('.weight-input');
-  const step = parseFloat(input.step) || 2.5;
-  const current = parseFloat(input.value) || 0;
-  const next = Math.max(0, +(current + dir * step).toFixed(2));
-  input.value = next;
-  input.style.opacity = '1';
-}
+// ── STEPPER ──
+document.querySelectorAll('.sb').forEach(btn => {
+  btn.onclick = () => {
+    const input = btn.closest('.ex-wt').querySelector('.weight-input');
+    const step = parseFloat(input.step) || 2.5;
+    const cur = parseFloat(input.value) || 0;
+    input.value = Math.max(0, +(cur + parseFloat(btn.dataset.dir) * step).toFixed(2));
+    input.style.opacity = '1';
+  };
+});
 
-// ─── BOTTOM NAV ───
-function navTo(day) {
-  const profile = document.getElementById('bottom-nav').dataset.currentProfile;
-  switchDay(profile, day);
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.nav-btn[data-day="${day}"]`).classList.add('active');
-  // scroll to top of content
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
+document.querySelectorAll('.weight-input').forEach(inp => {
+  inp.addEventListener('focus', function() { this.style.opacity='1'; this.select(); });
+  inp.addEventListener('keydown', e => { if(e.key==='Enter') { inp.closest('.exercise-row').querySelector('.ex-save').click(); inp.blur(); } });
+});
 
-// ─── PROFILES ───
+// ── PROFILES ──
+document.getElementById('pbtn-adult').onclick = () => switchProfile('adult');
+document.getElementById('pbtn-teen').onclick = () => switchProfile('teen');
+
 function switchProfile(p) {
-  document.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.profile-btn[data-profile="${p}"]`).classList.add('active');
+  document.querySelectorAll('.profile-btn').forEach(b => b.classList.toggle('active', b.dataset.profile === p));
   document.getElementById('profile-adult').style.display = p === 'adult' ? 'block' : 'none';
   document.getElementById('profile-teen').style.display = p === 'teen' ? 'block' : 'none';
-
-  // Update bottom nav
-  const nav = document.getElementById('bottom-nav');
-  nav.dataset.currentProfile = p;
-  if (p === 'adult') {
-    nav.innerHTML = '<button class="nav-btn active" data-day="lunes" onclick="navTo(\'lunes\')"><span class="nav-icon">💪</span>LUNES</button><div class="nav-divider"></div><button class="nav-btn" data-day="miercoles" onclick="navTo(\'miercoles\')"><span class="nav-icon">🏋️</span>MIÉRC.</button><div class="nav-divider"></div><button class="nav-btn" data-day="viernes" onclick="navTo(\'viernes\')"><span class="nav-icon">🏊</span>VIERNES</button>';
-    switchDay('adult', 'lunes');
-  } else {
-    nav.innerHTML = '<button class="nav-btn active" data-day="lunes" onclick="navTo(\'lunes\')"><span class="nav-icon">💪</span>LUNES</button><div class="nav-divider"></div><button class="nav-btn" data-day="miercoles" onclick="navTo(\'miercoles\')"><span class="nav-icon">🏋️</span>MIÉRC.</button><div class="nav-divider"></div><button class="nav-btn" data-day="viernes" onclick="navTo(\'viernes\')"><span class="nav-icon">🏋️</span>VIERNES</button>';
-    switchDay('teen', 'lunes');
-  }
+  document.getElementById('bottom-nav').dataset.profile = p;
+  // Reset nav icons for teen (no swim)
+  const navBtns = document.querySelectorAll('.nav-btn');
+  if (p === 'teen') navBtns[2].querySelector('.nav-icon').textContent = '🏋️';
+  else navBtns[2].querySelector('.nav-icon').textContent = '🏊';
+  switchDay(p, 'lunes');
 }
 
-// ─── TABS ───
+// ── TABS ──
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => switchDay(tab.dataset.profile, tab.dataset.day);
+});
+
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.onclick = () => {
+    const profile = document.getElementById('bottom-nav').dataset.profile || 'adult';
+    switchDay(profile, btn.dataset.day);
+    window.scrollTo({ top:0, behavior:'smooth' });
+  };
+});
+
 function switchDay(profile, day) {
-  const tabsEl = document.getElementById('tabs-' + profile);
-  tabsEl.querySelectorAll('.tab').forEach(t => {
-    t.classList.toggle('active', t.getAttribute('onclick').includes("'" + day + "'"));
-  });
-  document.querySelectorAll('#profile-' + profile + ' .day-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById(profile + '-' + day).classList.add('active');
-  // sync bottom nav
-  document.querySelectorAll('.nav-btn[data-day]').forEach(b => {
-    b.classList.toggle('active', b.dataset.day === day);
-  });
+  // tabs
+  document.querySelectorAll(`#tabs-${profile} .tab`).forEach(t => t.classList.toggle('active', t.dataset.day === day));
+  // panels
+  document.querySelectorAll(`#profile-${profile} .day-panel`).forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById(`${profile}-${day}`);
+  if (panel) panel.classList.add('active');
+  // bottom nav
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.day === day));
 }
 
-function openYT(title, videoId) {
-  window.open('https://www.youtube.com/watch?v=' + videoId, '_blank');
-}
+// ── SAVE WEIGHT ──
+document.querySelectorAll('.ex-save').forEach(btn => {
+  btn.onclick = async () => {
+    if (!sb) { setStatus('Conecta Supabase primero (⚙ config)', 'err'); return; }
+    const row = btn.closest('.exercise-row');
+    const exId = row.dataset.ex, profile = row.dataset.profile;
+    const input = row.querySelector('.weight-input');
+    const weight = parseFloat(input.value);
+    if (isNaN(weight) || weight <= 0) { setStatus('Introduce un peso válido', 'err'); return; }
+    const { error } = await sb.from('gym_weights').insert({ exercise_id:exId, profile, weight_kg:weight, logged_at:new Date().toISOString() });
+    if (error) { setStatus('Error: ' + error.message, 'err'); return; }
+    btn.textContent = '✓'; btn.classList.add('saved');
+    setTimeout(() => { btn.textContent = '↑'; btn.classList.remove('saved'); }, 2000);
+    setStatus('Guardado · ' + weight + ' kg', 'ok');
+    renderHistory(exId, row, profile);
+  };
+});
 
-// ─── SAVE WEIGHT ───
-async function saveWeight(btn) {
-  const row = btn.closest('.exercise-row');
-  const exId = row.dataset.ex;
-  const profile = row.dataset.profile;
-  const input = row.querySelector('.weight-input');
-  const weight = parseFloat(input.value);
-
-  if (isNaN(weight)) { setStatus('Introduce un peso válido', 'err'); return; }
-  if (!sb) { setStatus('Desbloquea la app primero', 'err'); return; }
-
-  const { error } = await sb.from('gym_weights').insert({
-    exercise_id: exId, profile, weight_kg: weight,
-    logged_at: new Date().toISOString()
-  });
-
-  if (error) { setStatus('Error: ' + error.message, 'err'); return; }
-
-  btn.textContent = '✓'; btn.classList.add('saved');
-  setTimeout(() => { btn.textContent = '↑'; btn.classList.remove('saved'); }, 2000);
-  setStatus('Guardado · ' + weight + ' kg', 'ok');
-  renderHistory(exId, row, profile);
-}
-
-// ─── LOAD ALL WEIGHTS ───
+// ── LOAD ALL WEIGHTS ──
 async function loadAllWeights() {
   if (!sb) return;
-  const { data, error } = await sb.from('gym_weights')
-    .select('exercise_id, profile, weight_kg, logged_at')
-    .order('logged_at', { ascending: false });
-  if (error) return;
-
+  const { data } = await sb.from('gym_weights').select('exercise_id,profile,weight_kg,logged_at').order('logged_at',{ascending:false});
+  if (!data) return;
   const seen = new Set();
   data.forEach(r => {
     const k = r.profile + '|' + r.exercise_id;
-    if (seen.has(k)) return;
-    seen.add(k);
+    if (seen.has(k)) return; seen.add(k);
     const row = document.querySelector(`[data-ex="${r.exercise_id}"][data-profile="${r.profile}"]`);
     if (!row) return;
     const inp = row.querySelector('.weight-input');
-    inp.value = r.weight_kg;
-    inp.style.opacity = '0.65';
+    inp.value = r.weight_kg; inp.style.opacity = '0.65';
     inp.title = 'Última: ' + new Date(r.logged_at).toLocaleDateString('es-ES');
   });
 }
 
-// ─── RENDER HISTORY ───
+// ── RENDER HISTORY ──
 async function renderHistory(exId, row, profile) {
   if (!sb) return;
-
-  const old = document.getElementById('hist-' + exId);
-  if (old) old.remove();
-
-  const { data } = await sb.from('gym_weights')
-    .select('weight_kg, logged_at')
-    .eq('exercise_id', exId)
-    .eq('profile', profile)
-    .order('logged_at', { ascending: false })
-    .limit(12);
-
+  const old = document.getElementById('hist-' + exId); if (old) old.remove();
+  const { data } = await sb.from('gym_weights').select('id,weight_kg,logged_at')
+    .eq('exercise_id', exId).eq('profile', profile)
+    .order('logged_at',{ascending:false}).limit(12);
   if (!data || data.length === 0) return;
 
   const isTeen = profile === 'teen';
-  const barColor = isTeen ? 'var(--green)' : 'var(--accent)';
-
+  const color = isTeen ? 'var(--green)' : 'var(--accent)';
   const wrapper = document.createElement('div');
-  wrapper.className = 'history-wrapper';
-  wrapper.id = 'hist-' + exId;
+  wrapper.className = 'history-wrapper'; wrapper.id = 'hist-' + exId;
 
   const toggle = document.createElement('button');
   toggle.className = 'history-toggle';
-  toggle.innerHTML = `▾ Historial &nbsp;<strong style="color:${barColor}">${data.length} registros</strong>`;
-  toggle.onclick = () => hPanel.classList.toggle('open');
+  toggle.innerHTML = `▾ Historial &nbsp;<strong style="color:${color}">${data.length} registro${data.length > 1 ? 's' : ''}</strong>`;
 
   const hPanel = document.createElement('div');
   hPanel.className = 'history-panel open';
+  toggle.onclick = () => hPanel.classList.toggle('open');
 
-  const chronoData = [...data].reverse();
-  const vals = chronoData.map(d => d.weight_kg);
-  const maxVal = Math.max(...vals);
-
-  const chartDiv = document.createElement('div');
-  chartDiv.className = 'history-chart';
-  chronoData.forEach((r, i) => {
-    const pct = maxVal > 0 ? vals[i] / maxVal : 0;
-    const barH = Math.max(3, Math.round(pct * 44));
-    const d = new Date(r.logged_at);
-    const dateStr = d.getDate() + '/' + (d.getMonth() + 1);
-    const wrap = document.createElement('div');
-    wrap.className = 'h-bar-wrap';
-    wrap.innerHTML = `
-      <div class="h-bar${isTeen ? ' teen-bar' : ''}" style="height:${barH}px" title="${vals[i]} kg · ${dateStr}"></div>
-      <div class="h-bar-val">${vals[i]}</div>
-      <div class="h-bar-date">${dateStr}</div>`;
-    chartDiv.appendChild(wrap);
-  });
-  hPanel.appendChild(chartDiv);
-
-  const table = document.createElement('table');
-  table.className = 'history-table';
-  table.innerHTML = '<tr><th>Fecha</th><th>Hora</th><th>Peso</th><th>Δ respecto anterior</th></tr>';
-
+  // Compact table only - no chart
+  const table = document.createElement('table'); table.className = 'history-table';
+  table.innerHTML = '<colgroup><col style="width:96px"><col style="width:54px"><col style="width:66px"><col style="width:52px"><col style="width:28px"></colgroup><tr><th>Fecha</th><th>Hora</th><th>Peso</th><th>Δ</th><th></th></tr>';
   data.forEach((r, i) => {
     const d = new Date(r.logged_at);
-    const prev = data[i + 1];
-    let delta = '—', deltaClass = 'delta-neu';
+    const prev = data[i+1];
+    let delta = '—', dc = 'delta-neu';
     if (prev) {
       const diff = +(r.weight_kg - prev.weight_kg).toFixed(2);
       delta = (diff >= 0 ? '+' : '') + diff + ' kg';
-      deltaClass = diff > 0 ? 'delta-pos' : diff < 0 ? 'delta-neg' : 'delta-neu';
+      dc = diff > 0 ? 'delta-pos' : diff < 0 ? 'delta-neg' : 'delta-neu';
     }
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${d.toLocaleDateString('es-ES')}</td><td>${d.toTimeString().slice(0,5)}</td><td class="w-val">${r.weight_kg} kg</td><td class="${deltaClass}">${delta}</td>`;
+    tr.innerHTML = `<td>${d.toLocaleDateString('es-ES')}</td><td>${d.toTimeString().slice(0,5)}</td><td class="w-val">${r.weight_kg} kg</td><td class="${dc}">${delta}</td><td><button class="del-btn" title="Eliminar">✕</button></td>`;
+    tr.querySelector('.del-btn').onclick = async () => {
+      const { error } = await sb.from('gym_weights').delete().eq('id', r.id);
+      if (error) { setStatus('Error al eliminar', 'err'); return; }
+      setStatus('Eliminado', 'ok');
+      renderHistory(exId, row, profile);
+    };
     table.appendChild(tr);
   });
   hPanel.appendChild(table);
 
-  wrapper.appendChild(toggle);
-  wrapper.appendChild(hPanel);
+  wrapper.appendChild(toggle); wrapper.appendChild(hPanel);
   row.insertAdjacentElement('afterend', wrapper);
 }
 
-// ─── NOTES ───
-async function saveNote(profile, day) {
-  const text = document.getElementById('note-' + profile + '-' + day).value.trim();
-  if (!text) return;
-  if (!sb) { setStatus('Desbloquea la app primero', 'err'); return; }
-  const { error } = await sb.from('gym_notes').insert({
-    profile, day, note: text, logged_at: new Date().toISOString()
-  });
-  if (error) setStatus('Error nota: ' + error.message, 'err');
-  else { setStatus('Nota guardada', 'ok'); document.getElementById('note-' + profile + '-' + day).value = ''; }
-}
-
-// ─── INPUT INTERACTIONS ───
-document.querySelectorAll('.weight-input').forEach(inp => {
-  inp.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      inp.closest('.exercise-row').querySelector('.ex-save').click();
-      inp.blur();
-    }
-  });
-  inp.addEventListener('focus', function() { this.style.opacity = '1'; this.select(); });
+// ── NOTES ──
+document.querySelectorAll('.note-save').forEach(btn => {
+  btn.onclick = async () => {
+    if (!sb) { setStatus('Conecta Supabase primero', 'err'); return; }
+    const { profile, day } = btn.dataset;
+    const ta = document.getElementById(`note-${profile}-${day}`);
+    const text = ta.value.trim();
+    if (!text) return;
+    const { error } = await sb.from('gym_notes').insert({ profile, day, note:text, logged_at:new Date().toISOString() });
+    if (error) setStatus('Error nota: ' + error.message, 'err');
+    else { setStatus('Nota guardada', 'ok'); ta.value = ''; }
+  };
 });
 
-// Auto-focus password field
-document.getElementById('login-pwd').focus();
+// ── INIT ──
+tryAutoConnect();
 </script>
 </body>
 </html>
